@@ -12,16 +12,22 @@ import {
 
 const httpServer = createServer()
 const io = new Server(httpServer, { cors: { origin: '*' } })
-
 const rooms = {}
 
 function broadcast(roomCode) {
   io.to(roomCode).emit('room-update', rooms[roomCode])
 }
 
-// ── Auto-advance logic ────────────────────────────────────────────────────────
-// Called after every player action. Advances the phase automatically when the
-// betting round is over, or moves to showdown when the hand is decided.
+// ─── Street-end detection ─────────────────────────────────────────────────────
+//
+// `hand.acted` = array of playerIds who have voluntarily acted since the last
+// aggressive action (bet / raise / allin-raise). A street ends when:
+//   1. Every player who can still bet (status=active, chips>0) is in `acted`, AND
+//   2. No one owes chips (currentBet < hand.currentBet)
+//
+// Special cases handled first:
+//   • Only 1 player not folded → auto-win, go to showdown
+//   • All remaining players are all-in → no more betting, go to showdown
 
 function checkStreetEnd(room) {
   const { players, hand } = room
@@ -31,43 +37,42 @@ function checkStreetEnd(room) {
     (p) => p.status !== 'out' && p.status !== 'folded'
   )
 
-  // Only 1 player remaining → they win uncontested
+  // Last player standing — no need to show hands
   if (notFolded.length <= 1) {
     hand.phase = 'showdown'
     return
   }
 
-  // All remaining players are all-in → no more betting, run to showdown
+  // Everyone still in is all-in → run the board, no more betting
   const canBet = notFolded.filter((p) => p.status === 'active' && p.chips > 0)
   if (canBet.length === 0) {
     hand.phase = 'showdown'
     return
   }
 
-  // Normal case: everyone has acted at least once AND everyone has matched the bet
-  const needToCall = notFolded.filter(
-    (p) => p.status === 'active' && p.chips > 0 && p.currentBet < hand.currentBet
-  )
-  const allActed = (hand.roundActionCount || 0) >= notFolded.length
+  // Normal case: every active (non-allin) player must have acted AND matched the bet
+  const acted = hand.acted || []
+  const allActed = canBet.every((p) => acted.includes(p.id))
+  const needToCall = canBet.filter((p) => p.currentBet < hand.currentBet)
+
   if (!allActed || needToCall.length > 0) return
 
-  // Street is over — advance phase
+  // ── Street is over ────────────────────────────────────────────────────────
   const phases = ['preflop', 'flop', 'turn', 'river']
   const idx = phases.indexOf(hand.phase)
 
   if (idx >= phases.length - 1) {
-    // River done → showdown
     hand.phase = 'showdown'
   } else {
     hand.phase = phases[idx + 1]
     hand.currentBet = 0
-    hand.roundActionCount = 0
+    hand.acted = []
     notFolded.forEach((p) => { p.currentBet = 0 })
     hand.currentTurn = nextInHandSeat(players, hand.dealerSeat)
   }
 }
 
-// ── Socket events ─────────────────────────────────────────────────────────────
+// ─── Socket events ────────────────────────────────────────────────────────────
 
 io.on('connection', (socket) => {
 
@@ -106,7 +111,6 @@ io.on('connection', (socket) => {
     if (!room) return cb?.({ error: 'Sala no encontrada' })
     if (room.status === 'playing' && !room.players[player.id])
       return cb?.({ error: 'La partida ya ha comenzado' })
-
     if (!room.players[player.id]) {
       const seat = Object.keys(room.players).length
       room.players[player.id] = {
@@ -159,7 +163,7 @@ io.on('connection', (socket) => {
         bigBlind: blinds.big,
         lastAction: null,
         handNumber: 1,
-        roundActionCount: 0,
+        acted: [],          // who has voluntarily acted this street
         awaitingNewHand: false,
       }
     }
@@ -174,22 +178,28 @@ io.on('connection', (socket) => {
     if (!player || hand.phase === 'showdown') return
 
     const prevBet = player.currentBet || 0
+    const prevHandBet = hand.currentBet
 
+    // ── Apply the action ────────────────────────────────────────────────────
     if (action === 'fold') {
       player.status = 'folded'
+
     } else if (action === 'call') {
       const callAmt = Math.min(hand.currentBet - prevBet, player.chips)
       player.chips -= callAmt
       player.currentBet = prevBet + callAmt
       hand.pot += callAmt
+
     } else if (action === 'check') {
-      // no chips
+      // no chip movement
+
     } else if (action === 'raise' || action === 'bet') {
       const extra = amount - prevBet
       player.chips -= extra
       player.currentBet = amount
       hand.currentBet = amount
       hand.pot += extra
+
     } else if (action === 'allin') {
       const allInTotal = prevBet + player.chips
       hand.pot += player.chips
@@ -203,22 +213,32 @@ io.on('connection', (socket) => {
       playerId,
       playerName: player.name,
       action,
-      amount: action === 'raise' || action === 'bet' ? amount
-            : action === 'call' ? Math.min(hand.currentBet - prevBet, player.chips + (hand.currentBet - prevBet))
+      amount: (action === 'raise' || action === 'bet') ? amount
+            : action === 'call' ? Math.min(prevHandBet - prevBet, player.chips + prevHandBet - prevBet)
+            : action === 'allin' ? prevBet + (player.chips + (hand.pot - (rooms[roomCode]?.hand?.pot ?? hand.pot)))
             : 0,
       ts: Date.now(),
     }
 
-    // Track actions this street. A raise resets the counter (everyone must respond again).
-    if (action === 'raise' || action === 'bet') {
-      hand.roundActionCount = 1
+    // ── Update `acted` set ──────────────────────────────────────────────────
+    // An aggressive action (bet / raise / allin-raise) resets the set so that
+    // every other player must respond. Passive actions just add to the set.
+    const isAggressive =
+      action === 'raise' ||
+      action === 'bet' ||
+      (action === 'allin' && player.currentBet > prevHandBet)
+
+    if (isAggressive) {
+      hand.acted = [playerId]   // only the aggressor has "acted" relative to the new bet
     } else {
-      hand.roundActionCount = (hand.roundActionCount || 0) + 1
+      if (!hand.acted) hand.acted = []
+      if (!hand.acted.includes(playerId)) hand.acted.push(playerId)
     }
 
+    // ── Advance turn ────────────────────────────────────────────────────────
     hand.currentTurn = nextInHandSeat(players, player.seat)
 
-    // Auto-advance phases or go to showdown
+    // ── Auto-advance phase ──────────────────────────────────────────────────
     checkStreetEnd(room)
 
     broadcast(roomCode)
@@ -290,7 +310,7 @@ io.on('connection', (socket) => {
         bigBlind: blinds.big,
         lastAction: null,
         handNumber: (room.hand?.handNumber || 0) + 1,
-        roundActionCount: 0,
+        acted: [],
         awaitingNewHand: false,
       }
     }
