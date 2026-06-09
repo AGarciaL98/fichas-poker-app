@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import {
   useRoom,
   playerAction,
-  nextPhase,
   newHand,
   awardPot,
   increaseBlinds,
@@ -133,25 +132,6 @@ export default function Game() {
       {/* ── Table map ── */}
       <div className="flex-shrink-0 px-2 pt-1">
         <TableMap players={players} hand={hand} myId={playerId} />
-      </div>
-
-      {/* ── Pot ── */}
-      <div className="flex-shrink-0 flex justify-center py-1">
-        <div className="card-felt px-6 py-1.5 flex items-center gap-3">
-          <div className="text-center">
-            <p className="label-sm">Bote</p>
-            <p className="chip-display text-2xl">{formatChips(hand.pot || 0)}</p>
-          </div>
-          {hand.currentBet > 0 && (
-            <>
-              <div className="w-px h-8 bg-felt-600" />
-              <div className="text-center">
-                <p className="label-sm">Apuesta actual</p>
-                <p className="text-gold-400 font-bold">{formatChips(hand.currentBet)}</p>
-              </div>
-            </>
-          )}
-        </div>
       </div>
 
       {/* ── Last action ── */}
@@ -300,13 +280,34 @@ export default function Game() {
         </div>
       )}
 
-      {/* ── Dealer controls ── */}
-      {isDealer && (
+      {/* ── Dealer controls — solo aparecen cuando la mano termina ── */}
+      {isDealer && hand.phase === 'showdown' && (
         <div className="flex-shrink-0 bg-felt-800 border-t border-felt-600 px-3 py-2">
-          {showWinnerPicker ? (
+
+          {/* Tras dar el bote: botón de nueva mano */}
+          {hand.awaitingNewHand ? (
+            <div className="flex gap-2 items-center">
+              <button
+                className="flex-1 btn-gold py-3 text-base"
+                onClick={() => newHand(roomCode)}
+              >
+                Nueva mano →
+              </button>
+              {room.config?.blindIncreaseMinutes === 0 && (
+                <button
+                  className="btn-ghost py-3 px-4 text-sm"
+                  onClick={() => { increaseBlinds(roomCode) }}
+                >
+                  Subir ciegas ↑
+                </button>
+              )}
+            </div>
+
+          ) : showWinnerPicker ? (
+            /* Picker de ganador */
             <div>
               <p className="label-sm text-center mb-2">
-                {inHand.length > 2 ? 'Toca uno o varios ganadores' : '¿Quién gana?'}
+                {inHand.length > 2 ? 'Toca uno o varios ganadores' : '¿Quién gana el bote?'}
               </p>
               <div className="flex flex-wrap gap-2 justify-center mb-2">
                 {inHand.map((p) => (
@@ -330,7 +331,7 @@ export default function Game() {
                   onClick={confirmAwardPot}
                   disabled={selectedWinners.length === 0}
                 >
-                  {selectedWinners.length > 1 ? 'Dividir bote' : 'Dar bote'}
+                  {selectedWinners.length > 1 ? 'Dividir bote' : 'Dar bote 🏆'}
                 </button>
                 <button
                   className="btn-ghost py-2 px-4 text-sm"
@@ -340,49 +341,15 @@ export default function Game() {
                 </button>
               </div>
             </div>
-          ) : showDealerMenu ? (
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <p className="label-sm">Opciones dealer</p>
-                <button className="text-gray-400 text-sm" onClick={() => setShowDealerMenu(false)}>✕</button>
-              </div>
-              {room.config?.blindIncreaseMinutes === 0 && (
-                <button
-                  className="w-full btn-ghost py-2 text-xs"
-                  onClick={() => { increaseBlinds(roomCode); setShowDealerMenu(false) }}
-                >
-                  Subir ciegas ↑
-                </button>
-              )}
-            </div>
+
           ) : (
-            <div className="flex gap-2 items-center">
-              <button
-                className="flex-1 py-2 rounded-xl bg-felt-700 border border-felt-600 text-white text-sm font-semibold active:scale-95 disabled:opacity-40"
-                onClick={() => nextPhase(roomCode)}
-                disabled={hand.phase === 'showdown'}
-              >
-                {NEXT_PHASE_LABEL[hand.phase] || '—'}
-              </button>
-              <button
-                className="flex-1 py-2 rounded-xl bg-green-900 border border-green-800 text-white text-sm font-bold active:scale-95"
-                onClick={() => { setShowWinnerPicker(true); setSelectedWinners([]) }}
-              >
-                Dar bote 🏆
-              </button>
-              <button
-                className="flex-1 btn-gold py-2 text-sm"
-                onClick={() => newHand(roomCode)}
-              >
-                Nueva mano
-              </button>
-              <button
-                className="w-9 h-9 rounded-xl bg-felt-700 border border-felt-600 text-gray-400 flex items-center justify-center flex-shrink-0 active:bg-felt-600"
-                onClick={() => setShowDealerMenu(true)}
-              >
-                ⋯
-              </button>
-            </div>
+            /* Botón principal: dar bote */
+            <button
+              className="w-full py-3 rounded-xl bg-green-900 border border-green-700 text-white text-base font-bold active:scale-95"
+              onClick={() => { setShowWinnerPicker(true); setSelectedWinners([]) }}
+            >
+              ¿Quién gana el bote? 🏆
+            </button>
           )}
         </div>
       )}
