@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    overflow: hidden;
+  }
+  body {
+    @apply bg-felt-900 text-white;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+}
+
+@layer components {
+  .btn-gold {
+    @apply bg-gradient-to-b from-gold-400 to-gold-600 text-black font-bold rounded-lg px-4 py-3
+           active:scale-95 transition-transform shadow-lg;
+  }
+  .btn-ghost {
+    @apply border border-gold-500 text-gold-400 font-semibold rounded-lg px-4 py-3
+           active:scale-95 transition-transform;
+  }
+  .btn-danger {
+    @apply bg-gradient-to-b from-red-500 to-red-700 text-white font-bold rounded-lg px-4 py-3
+           active:scale-95 transition-transform shadow-lg;
+  }
+  .btn-action {
+    @apply flex-1 rounded-xl py-3 font-bold text-sm active:scale-95 transition-transform;
+  }
+  .card-felt {
+    @apply bg-felt-800 border border-felt-600 rounded-2xl;
+  }
+  .chip-display {
+    @apply text-2xl font-bold text-gold-400 font-casino;
+  }
+  .label-sm {
+    @apply text-xs text-gray-400 uppercase tracking-wider;
+  }
+}
+
+/* Scrollable areas within fixed height */
+.scroll-y {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@layer components {
+  .input-field {
+    @apply w-full bg-felt-800 border border-felt-600 rounded-xl px-4 py-3 text-white text-lg
+           focus:outline-none focus:border-gold-500;
+  }
+}
