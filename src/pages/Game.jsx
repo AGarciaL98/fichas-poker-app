@@ -112,7 +112,7 @@ export default function Game() {
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── Top bar ── */}
-      <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 bg-felt-800 border-b border-felt-600">
+      <div className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 bg-felt-800 border-b border-felt-600">
         <div className="flex items-center gap-2">
           <span className="text-gold-400 font-casino font-bold text-sm tracking-wider">{roomCode}</span>
           {hand.handNumber > 0 && (
@@ -121,13 +121,25 @@ export default function Game() {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400 bg-felt-700 px-2 py-1 rounded uppercase">
-            {PHASE_LABEL[hand.phase] || '—'}
-          </span>
-          <BlindTimer room={room} />
-        </div>
+        <BlindTimer room={room} />
       </div>
+
+      {/* ── Phase banner ── */}
+      {hand.phase && (
+        <div className={`flex-shrink-0 flex items-center justify-center py-1.5 ${
+          hand.phase === 'showdown'
+            ? 'bg-gold-600/20 border-b border-gold-600/40'
+            : 'bg-felt-800/60 border-b border-felt-600'
+        }`}>
+          <span className={`font-casino font-bold tracking-widest uppercase ${
+            hand.phase === 'showdown'
+              ? 'text-gold-400 text-xl'
+              : 'text-white text-lg'
+          }`}>
+            {PHASE_LABEL[hand.phase]}
+          </span>
+        </div>
+      )}
 
       {/* ── Table map ── */}
       <div className="flex-shrink-0 px-2 pt-1">

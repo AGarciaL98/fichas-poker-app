@@ -10,6 +10,14 @@ export default function Lobby() {
   const { room, loading } = useRoom(roomCode)
   const playerId = getOrCreatePlayerId()
   const [showQR, setShowQR] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  function copyCode() {
+    navigator.clipboard.writeText(roomCode).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   const isHost = room?.host === playerId
   const players = Object.values(room?.players || {}).sort((a, b) => a.seat - b.seat)
@@ -45,9 +53,21 @@ export default function Lobby() {
       {/* Header */}
       <div className="flex-shrink-0 text-center px-4 pt-5 pb-3 bg-felt-900">
         <p className="label-sm">Código de sala</p>
-        <h1 className="text-5xl font-casino font-bold text-gold-400 tracking-[0.35em] mt-1">
-          {roomCode}
-        </h1>
+        <div className="flex items-center justify-center gap-3 mt-1">
+          <h1 className="text-5xl font-casino font-bold text-gold-400 tracking-[0.35em]">
+            {roomCode}
+          </h1>
+          <button
+            onClick={copyCode}
+            className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
+            title="Copiar código"
+          >
+            <span className="text-2xl">{copied ? '✅' : '📋'}</span>
+            <span className={`text-[10px] font-semibold ${copied ? 'text-green-400' : 'text-gray-500'}`}>
+              {copied ? '¡Copiado!' : 'Copiar'}
+            </span>
+          </button>
+        </div>
         <p className="text-gray-500 text-xs mt-1">{players.length} jugador{players.length !== 1 ? 'es' : ''}</p>
       </div>
 

@@ -20,19 +20,10 @@ const STATUS_COLOR = {
   waiting: 'border-gray-600',
 }
 
-const PHASE_SHORT = {
-  preflop:  'Pre-flop',
-  flop:     'Flop',
-  turn:     'Turn',
-  river:    'River',
-  showdown: 'Showdown',
-}
-
 export default function TableMap({ players, hand, myId }) {
   const playerList = Object.values(players || {}).sort((a, b) => a.seat - b.seat)
   const pot = hand?.pot || 0
   const currentBet = hand?.currentBet || 0
-  const phase = hand?.phase
 
   return (
     <div className="relative w-full" style={{ paddingBottom: '55%' }}>
@@ -43,28 +34,25 @@ export default function TableMap({ players, hand, myId }) {
       />
 
       {/* ── Center info pill ── */}
-      {(pot > 0 || phase) && (
+      {(pot > 0 || currentBet > 0) && (
         <div
           className="absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2
-                     bg-black/90 border border-gray-700 rounded-xl px-3 py-1.5 text-center
-                     pointer-events-none"
+                     bg-black/95 border border-gray-600 rounded-2xl
+                     pointer-events-none text-center"
+          style={{ minWidth: '52%', padding: '6px 14px' }}
         >
+          {/* Pot amount — most prominent */}
           {pot > 0 && (
-            <p className="text-gold-400 font-bold text-base leading-tight font-casino">
+            <p className="text-gold-400 font-casino font-bold leading-none" style={{ fontSize: '1.25rem' }}>
               {formatChips(pot)}
             </p>
           )}
-          {currentBet > 0 && pot > 0 && (
-            <p className="text-gray-500 text-[9px] leading-tight">
-              apuesta {formatChips(currentBet)}
-            </p>
-          )}
-          {phase && (
-            <p className={`text-[9px] leading-tight mt-0.5 ${
-              phase === 'showdown' ? 'text-gold-500 font-semibold' : 'text-gray-500'
-            }`}>
-              {PHASE_SHORT[phase] || phase}
-            </p>
+          {/* Current bet — secondary */}
+          {currentBet > 0 && (
+            <div className="flex items-center justify-center gap-1 mt-0.5">
+              <span className="text-gray-500 text-[9px]">apuesta</span>
+              <span className="text-gray-300 text-[10px] font-semibold">{formatChips(currentBet)}</span>
+            </div>
           )}
         </div>
       )}
