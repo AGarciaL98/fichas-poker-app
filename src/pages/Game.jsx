@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   useRoom,
   playerAction,
@@ -11,7 +11,6 @@ import {
 import {
   getOrCreatePlayerId,
   formatChips,
-  activePlayers,
   currentBlinds,
   inHandPlayers,
 } from '../lib/gameLogic'
@@ -40,11 +39,26 @@ export default function Game() {
   const { room, loading } = useRoom(roomCode)
   const playerId = getOrCreatePlayerId()
 
-  const [showRaise, setShowRaise] = useState(false)
-  const [raiseInput, setRaiseInput] = useState('')
+  // All hooks before any early return
+  const [sliderValue, setSliderValue] = useState(null)
   const [showWinnerPicker, setShowWinnerPicker] = useState(false)
   const [selectedWinners, setSelectedWinners] = useState([])
   const [showDealerMenu, setShowDealerMenu] = useState(false)
+
+  // Derived values (safe with optional chaining when room is null)
+  const players = room?.players || {}
+  const hand = room?.hand || {}
+  const me = players[playerId]
+  const blinds = room ? currentBlinds(room) : { small: 0, big: 0 }
+  const myPrevBet = me?.currentBet || 0
+  const raiseMin = (hand.currentBet || 0) + (hand.bigBlind || blinds.big)
+  const maxBet = (me?.chips || 0) + myPrevBet
+  const isMyTurn = hand.currentTurn === me?.seat && me?.status === 'active'
+
+  // Reset slider to raiseMin each time it becomes our turn or a new hand starts
+  useEffect(() => {
+    if (isMyTurn) setSliderValue(raiseMin)
+  }, [isMyTurn, hand.handNumber])
 
   if (loading || !room) {
     return (
@@ -54,23 +68,32 @@ export default function Game() {
     )
   }
 
-  const players = room.players || {}
-  const hand = room.hand || {}
-  const me = players[playerId]
-  const isDealer = room.host === playerId
-  const isMyTurn = hand.currentTurn === me?.seat && me?.status === 'active'
   const inHand = inHandPlayers(players)
-  const myPrevBet = me?.currentBet || 0
+  const isDealer = room.host === playerId
   const toCall = Math.max(0, (hand.currentBet || 0) - myPrevBet)
   const canCheck = toCall === 0
-  const blinds = currentBlinds(room)
-  const raiseMin = (hand.currentBet || 0) + (hand.bigBlind || blinds.big)
   const currentTurnPlayer = Object.values(players).find((p) => p.seat === hand.currentTurn)
+
+  // Slider state
+  const canRaise = me?.chips > 0 && maxBet > myPrevBet
+  const step = Math.max(1, hand.bigBlind || blinds.big || 1)
+  const clampedSlider = Math.max(raiseMin, Math.min(sliderValue ?? raiseMin, maxBet))
+  const isAllIn = clampedSlider >= maxBet
+  const sliderProgress =
+    maxBet > raiseMin
+      ? ((clampedSlider - raiseMin) / (maxBet - raiseMin)) * 100
+      : 100
 
   function doAction(action, amount) {
     playerAction(roomCode, playerId, action, amount)
-    setShowRaise(false)
-    setRaiseInput('')
+  }
+
+  function handleRaiseOrAllIn() {
+    if (isAllIn) {
+      doAction('allin')
+    } else {
+      doAction('raise', clampedSlider)
+    }
   }
 
   function toggleWinner(id) {
@@ -88,6 +111,7 @@ export default function Game() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+
       {/* ── Top bar ── */}
       <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 bg-felt-800 border-b border-felt-600">
         <div className="flex items-center gap-2">
@@ -158,67 +182,116 @@ export default function Game() {
         </div>
       )}
 
-      {/* ── Raise input ── */}
-      {showRaise && isMyTurn && (
-        <div className="flex-shrink-0 bg-felt-800 border-t border-felt-600 px-3 py-2 flex items-center gap-2">
-          <span className="text-sm text-gray-400 whitespace-nowrap">Subir a</span>
-          <input
-            type="number"
-            className="flex-1 bg-felt-900 border border-felt-600 rounded-lg px-3 py-2 text-white text-lg text-center focus:outline-none focus:border-gold-500"
-            value={raiseInput}
-            onChange={(e) => setRaiseInput(e.target.value)}
-            min={raiseMin}
-            max={(me?.chips || 0) + myPrevBet}
-            autoFocus
-          />
-          <button
-            className="btn-gold px-4 py-2 text-sm"
-            onClick={() => {
-              const amt = parseInt(raiseInput)
-              if (!isNaN(amt) && amt >= raiseMin) doAction('raise', amt)
-            }}
-          >
-            OK
-          </button>
-          <button className="text-gray-400 px-2" onClick={() => setShowRaise(false)}>✕</button>
-        </div>
-      )}
-
       {/* ── Player actions ── */}
       {me && me.status !== 'folded' && me.status !== 'out' && me.status !== 'allin' && (
-        <div className="flex-shrink-0 px-3 pb-1">
+        <div className="flex-shrink-0 px-3 pb-1 space-y-2">
           {isMyTurn ? (
-            <div className="flex gap-2">
-              <button className="btn-action bg-red-800 text-white" onClick={() => doAction('fold')}>
-                Fold
-              </button>
-              {canCheck ? (
-                <button className="btn-action bg-blue-800 text-white" onClick={() => doAction('check')}>
-                  Check
-                </button>
-              ) : (
+            <>
+              {/* Slider — only if player has chips to raise */}
+              {canRaise && (
+                <div className="card-felt px-4 py-3 space-y-2">
+                  {/* Amount label */}
+                  <div className="flex justify-between items-baseline">
+                    <span className={`text-sm font-semibold ${isAllIn ? 'text-purple-400' : 'text-gold-400'}`}>
+                      {isAllIn ? 'ALL IN' : (canCheck ? 'Apostar' : 'Subir a')}
+                    </span>
+                    <span className={`text-xl font-bold font-casino ${isAllIn ? 'text-purple-300' : 'text-gold-300'}`}>
+                      {formatChips(clampedSlider)}
+                    </span>
+                  </div>
+
+                  {/* Slider */}
+                  <div className="relative">
+                    <input
+                      type="range"
+                      className="bet-slider w-full"
+                      min={raiseMin}
+                      max={maxBet}
+                      step={step}
+                      value={clampedSlider}
+                      onChange={(e) => setSliderValue(Number(e.target.value))}
+                      style={{ '--progress': `${sliderProgress}%`, '--is-allin': isAllIn ? '1' : '0' }}
+                    />
+                  </div>
+
+                  {/* Range labels */}
+                  <div className="flex justify-between text-[10px] text-gray-500">
+                    <span>mín {formatChips(raiseMin)}</span>
+                    <span className={isAllIn ? 'text-purple-400 font-semibold' : ''}>
+                      all-in {formatChips(maxBet)}
+                    </span>
+                  </div>
+
+                  {/* Quick bet buttons */}
+                  <div className="flex gap-1.5 pt-0.5">
+                    {[
+                      { label: '½ pot', value: Math.floor((hand.pot || 0) / 2) },
+                      { label: 'pot', value: hand.pot || 0 },
+                      { label: '2× pot', value: (hand.pot || 0) * 2 },
+                    ]
+                      .filter((b) => b.value >= raiseMin && b.value < maxBet)
+                      .map((b) => (
+                        <button
+                          key={b.label}
+                          className="flex-1 py-1 rounded-lg bg-felt-700 text-gray-300 text-xs active:bg-felt-600 border border-felt-600"
+                          onClick={() => setSliderValue(b.value)}
+                        >
+                          {b.label}
+                        </button>
+                      ))}
+                    <button
+                      className="flex-1 py-1 rounded-lg bg-purple-900 text-purple-300 text-xs active:bg-purple-800 border border-purple-800"
+                      onClick={() => setSliderValue(maxBet)}
+                    >
+                      all-in
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex gap-2">
                 <button
-                  className="btn-action bg-blue-800 text-white flex flex-col items-center leading-tight"
-                  onClick={() => doAction('call')}
-                  disabled={me.chips === 0}
+                  className="btn-action bg-red-900 text-white border border-red-800"
+                  onClick={() => doAction('fold')}
                 >
-                  <span>Call</span>
-                  <span className="text-xs font-normal opacity-80">{formatChips(Math.min(toCall, me.chips))}</span>
+                  Fold
                 </button>
-              )}
-              <button
-                className="btn-action bg-gold-500 text-black"
-                onClick={() => { setRaiseInput(String(raiseMin)); setShowRaise(true) }}
-                disabled={me.chips === 0}
-              >
-                {canCheck ? 'Bet' : 'Raise'}
-              </button>
-              {me.chips > 0 && (
-                <button className="btn-action bg-purple-800 text-white text-xs" onClick={() => doAction('allin')}>
-                  All-in
-                </button>
-              )}
-            </div>
+
+                {canCheck ? (
+                  <button
+                    className="btn-action bg-blue-900 text-white border border-blue-800"
+                    onClick={() => doAction('check')}
+                  >
+                    Check
+                  </button>
+                ) : (
+                  <button
+                    className="btn-action bg-blue-900 text-white border border-blue-800 flex flex-col items-center leading-tight"
+                    onClick={() => doAction('call')}
+                    disabled={me.chips === 0}
+                  >
+                    <span>Call</span>
+                    <span className="text-xs font-normal opacity-75">
+                      {formatChips(Math.min(toCall, me.chips))}
+                    </span>
+                  </button>
+                )}
+
+                {canRaise && (
+                  <button
+                    className={`btn-action font-bold transition-colors ${
+                      isAllIn
+                        ? 'bg-purple-700 text-white border border-purple-600'
+                        : 'bg-gold-500 text-black'
+                    }`}
+                    onClick={handleRaiseOrAllIn}
+                  >
+                    {isAllIn ? 'All-in' : canCheck ? 'Bet' : 'Raise'}
+                  </button>
+                )}
+              </div>
+            </>
           ) : (
             <div className="text-center text-gray-600 text-sm py-2">
               {currentTurnPlayer ? `${currentTurnPlayer.name} está pensando…` : ''}
@@ -230,8 +303,6 @@ export default function Game() {
       {/* ── Dealer controls ── */}
       {isDealer && (
         <div className="flex-shrink-0 bg-felt-800 border-t border-felt-600 px-3 py-2">
-
-          {/* Winner picker */}
           {showWinnerPicker ? (
             <div>
               <p className="label-sm text-center mb-2">
@@ -261,7 +332,10 @@ export default function Game() {
                 >
                   {selectedWinners.length > 1 ? 'Dividir bote' : 'Dar bote'}
                 </button>
-                <button className="btn-ghost py-2 px-4 text-sm" onClick={() => { setShowWinnerPicker(false); setSelectedWinners([]) }}>
+                <button
+                  className="btn-ghost py-2 px-4 text-sm"
+                  onClick={() => { setShowWinnerPicker(false); setSelectedWinners([]) }}
+                >
                   Cancelar
                 </button>
               </div>
@@ -272,19 +346,16 @@ export default function Game() {
                 <p className="label-sm">Opciones dealer</p>
                 <button className="text-gray-400 text-sm" onClick={() => setShowDealerMenu(false)}>✕</button>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                {room.config?.blindIncreaseMinutes === 0 && (
-                  <button
-                    className="flex-1 btn-ghost py-2 text-xs"
-                    onClick={() => { increaseBlinds(roomCode); setShowDealerMenu(false) }}
-                  >
-                    Subir ciegas ↑
-                  </button>
-                )}
-              </div>
+              {room.config?.blindIncreaseMinutes === 0 && (
+                <button
+                  className="w-full btn-ghost py-2 text-xs"
+                  onClick={() => { increaseBlinds(roomCode); setShowDealerMenu(false) }}
+                >
+                  Subir ciegas ↑
+                </button>
+              )}
             </div>
           ) : (
-            /* Main dealer bar */
             <div className="flex gap-2 items-center">
               <button
                 className="flex-1 py-2 rounded-xl bg-felt-700 border border-felt-600 text-white text-sm font-semibold active:scale-95 disabled:opacity-40"
@@ -294,7 +365,7 @@ export default function Game() {
                 {NEXT_PHASE_LABEL[hand.phase] || '—'}
               </button>
               <button
-                className="flex-1 py-2 rounded-xl bg-green-800 text-white text-sm font-bold active:scale-95"
+                className="flex-1 py-2 rounded-xl bg-green-900 border border-green-800 text-white text-sm font-bold active:scale-95"
                 onClick={() => { setShowWinnerPicker(true); setSelectedWinners([]) }}
               >
                 Dar bote 🏆
