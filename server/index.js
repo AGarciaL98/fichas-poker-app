@@ -34,12 +34,25 @@ function checkStreetEnd(room) {
   if (!hand || hand.phase === 'showdown') return
 
   const notFolded = Object.values(players).filter(
-    (p) => p.status !== 'out' && p.status !== 'folded'
+    (p) => p.status !== 'out' && p.status !== 'folded' && p.status !== 'waiting'
   )
 
-  // Last player standing — no need to show hands
+  // Last player standing — auto-award pot, no showdown needed
   if (notFolded.length <= 1) {
     hand.phase = 'showdown'
+    if (notFolded.length === 1) {
+      const winner = notFolded[0]
+      winner.chips += hand.pot
+      hand.lastAction = {
+        playerId: winner.id,
+        playerName: winner.name,
+        action: 'win',
+        amount: hand.pot,
+        ts: Date.now(),
+      }
+      hand.pot = 0
+      hand.awaitingNewHand = true
+    }
     return
   }
 
@@ -67,6 +80,7 @@ function checkStreetEnd(room) {
     hand.phase = phases[idx + 1]
     hand.currentBet = 0
     hand.acted = []
+    hand.aggressorName = null   // new street: no bet yet
     notFolded.forEach((p) => { p.currentBet = 0 })
     hand.currentTurn = nextInHandSeat(players, hand.dealerSeat)
   }
@@ -109,8 +123,6 @@ io.on('connection', (socket) => {
   socket.on('join-room', ({ roomCode, player }, cb) => {
     const room = rooms[roomCode]
     if (!room) return cb?.({ error: 'Sala no encontrada' })
-    if (room.status === 'playing' && !room.players[player.id])
-      return cb?.({ error: 'La partida ya ha comenzado' })
     if (!room.players[player.id]) {
       const seat = Object.keys(room.players).length
       room.players[player.id] = {
@@ -163,7 +175,8 @@ io.on('connection', (socket) => {
         bigBlind: blinds.big,
         lastAction: null,
         handNumber: 1,
-        acted: [],          // who has voluntarily acted this street
+        acted: [],
+        aggressorName: bb?.name || null,  // BB sets the initial bet
         awaitingNewHand: false,
       }
     }
@@ -175,7 +188,7 @@ io.on('connection', (socket) => {
     if (!room) return
     const { players, hand } = room
     const player = players[playerId]
-    if (!player || hand.phase === 'showdown') return
+    if (!player || hand.phase === 'showdown' || player.status === 'waiting') return
 
     const prevBet = player.currentBet || 0
     const prevHandBet = hand.currentBet
@@ -229,7 +242,8 @@ io.on('connection', (socket) => {
       (action === 'allin' && player.currentBet > prevHandBet)
 
     if (isAggressive) {
-      hand.acted = [playerId]   // only the aggressor has "acted" relative to the new bet
+      hand.acted = [playerId]
+      hand.aggressorName = player.name   // track who you need to call
     } else {
       if (!hand.acted) hand.acted = []
       if (!hand.acted.includes(playerId)) hand.acted.push(playerId)
@@ -311,6 +325,7 @@ io.on('connection', (socket) => {
         lastAction: null,
         handNumber: (room.hand?.handNumber || 0) + 1,
         acted: [],
+        aggressorName: bb?.name || null,
         awaitingNewHand: false,
       }
     }

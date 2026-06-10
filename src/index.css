@@ -111,6 +111,15 @@ input[type='range'].bet-slider::-moz-range-thumb {
   cursor: grab;
 }
 
+/* ── Action feed slide-up animation ─────────────────────────────────────── */
+@keyframes actionSlideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.action-entry-new {
+  animation: actionSlideUp 0.3s ease-out;
+}
+
 /* Scrollable areas within fixed height */
 .scroll-y {
   overflow-y: auto;

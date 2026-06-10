@@ -236,19 +236,16 @@ export default function Home() {
         {/* Subida de ciegas */}
         <Section title="Subir ciegas cada…">
           <div className="flex gap-2 flex-wrap">
-            {[0, 10, 15, 20, 30, 45].map((v) => (
+            {[10, 15, 20, 30, 45].map((v) => (
               <Pill
                 key={v}
                 active={config.blindIncreaseMinutes === v}
                 onClick={() => setConfig((c) => ({ ...c, blindIncreaseMinutes: v }))}
               >
-                {v === 0 ? 'Manual' : `${v} min`}
+                {`${v} min`}
               </Pill>
             ))}
           </div>
-          {config.blindIncreaseMinutes === 0 && (
-            <p className="text-xs text-gray-500 mt-1">El dealer sube las ciegas manualmente cuando quiera</p>
-          )}
         </Section>
 
         {/* Estructura de ciegas */}

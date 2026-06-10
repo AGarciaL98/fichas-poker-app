@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { useEffect, useState } from 'react'
 import { useRoom, startGame } from '../hooks/useRoom'
 import { getOrCreatePlayerId, formatChips, currentBlinds } from '../lib/gameLogic'
+import { copyToClipboard } from '../lib/clipboard'
 
 export default function Lobby() {
   const { roomCode } = useParams()
@@ -13,7 +14,7 @@ export default function Lobby() {
   const [copied, setCopied] = useState(false)
 
   function copyCode() {
-    navigator.clipboard.writeText(roomCode).then(() => {
+    copyToClipboard(roomCode).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })

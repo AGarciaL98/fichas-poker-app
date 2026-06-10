@@ -4,14 +4,12 @@ export function generateRoomCode() {
   return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
-// Generates a unique player ID stored in sessionStorage
+// Unique ID per page load — generated in memory so each tab gets its own identity
+// regardless of whether sessionStorage was inherited from a parent tab.
+const _TAB_PLAYER_ID = crypto.randomUUID()
+
 export function getOrCreatePlayerId() {
-  let id = sessionStorage.getItem('pokerId')
-  if (!id) {
-    id = crypto.randomUUID()
-    sessionStorage.setItem('pokerId', id)
-  }
-  return id
+  return _TAB_PLAYER_ID
 }
 
 // Returns active (non-out) players sorted by seat
@@ -21,10 +19,10 @@ export function activePlayers(players) {
     .sort((a, b) => a.seat - b.seat)
 }
 
-// Returns players still in this hand (not folded, not out)
+// Returns players still in this hand (not folded, not out, not waiting for next hand)
 export function inHandPlayers(players) {
   return Object.values(players || {})
-    .filter((p) => p.status !== 'out' && p.status !== 'folded')
+    .filter((p) => p.status !== 'out' && p.status !== 'folded' && p.status !== 'waiting')
     .sort((a, b) => a.seat - b.seat)
 }
 

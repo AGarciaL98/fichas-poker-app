@@ -1,5 +1,4 @@
 import { io } from 'socket.io-client'
+import { SOCKET_URL } from './config'
 
-// In dev: Vite proxies /socket.io → localhost:3001
-// In prod: same origin
-export const socket = io({ autoConnect: true })
+export const socket = io(SOCKET_URL, { autoConnect: true })

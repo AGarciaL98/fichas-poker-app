@@ -14,7 +14,6 @@ import {
   inHandPlayers,
 } from '../lib/gameLogic'
 import TableMap from '../components/TableMap'
-import ActionLog from '../components/ActionLog'
 import BlindTimer from '../components/BlindTimer'
 
 const PHASE_LABEL = {
@@ -59,6 +58,16 @@ export default function Game() {
     if (isMyTurn) setSliderValue(raiseMin)
   }, [isMyTurn, hand.handNumber])
 
+  // Auto-award when everyone folds: if only 1 player remains at showdown, award pot immediately
+  useEffect(() => {
+    if (me?.seat !== hand.dealerSeat) return
+    if (hand.phase !== 'showdown' || hand.awaitingNewHand) return
+    const survivors = inHandPlayers(players)
+    if (survivors.length === 1) {
+      awardPot(roomCode, [survivors[0].id])
+    }
+  }, [hand.phase, hand.awaitingNewHand])
+
   if (loading || !room) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -68,7 +77,7 @@ export default function Game() {
   }
 
   const inHand = inHandPlayers(players)
-  const isDealer = room.host === playerId
+  const isDealer = me?.seat === hand.dealerSeat
   const toCall = Math.max(0, (hand.currentBet || 0) - myPrevBet)
   const canCheck = toCall === 0
   const currentTurnPlayer = Object.values(players).find((p) => p.seat === hand.currentTurn)
@@ -142,13 +151,8 @@ export default function Game() {
       )}
 
       {/* ── Table map ── */}
-      <div className="flex-shrink-0 px-2 pt-1">
+      <div className="flex-1 min-h-0 px-2 pt-1 relative">
         <TableMap players={players} hand={hand} myId={playerId} />
-      </div>
-
-      {/* ── Last action ── */}
-      <div className="flex-1 overflow-hidden px-4">
-        <ActionLog room={room} />
       </div>
 
       {/* ── My chips ── */}
@@ -175,7 +179,7 @@ export default function Game() {
       )}
 
       {/* ── Player actions ── */}
-      {me && me.status !== 'folded' && me.status !== 'out' && me.status !== 'allin' && (
+      {me && me.status !== 'folded' && me.status !== 'out' && me.status !== 'allin' && hand.phase !== 'showdown' && (
         <div className="flex-shrink-0 px-3 pb-1 space-y-2">
           {isMyTurn ? (
             <>
