@@ -57,6 +57,17 @@ Este archivo se actualiza en cada commit que afecte a dependencias, rutas, estil
 
 ## Historial de cambios relevantes
 
+### 2026-06-19 — AdSense solo se carga tras consentimiento de cookies (RGPD)
+**Archivos afectados:** `index.html`, `src/components/CookieBanner.jsx`, `src/App.jsx`
+
+Antes el script de Google AdSense (`adsbygoogle.js`) se cargaba siempre desde el `<head>` de `index.html`, independientemente del consentimiento de cookies.
+
+- `index.html`: eliminado el `<script>` de AdSense del `<head>`.
+- `CookieBanner.jsx`: al pulsar "Aceptar y continuar", además de guardar `cookie_consent` en `localStorage`, inyecta dinámicamente el script de AdSense en `document.head`.
+- `App.jsx`: al montar, comprueba `localStorage.getItem('cookie_consent')`; si el usuario ya había aceptado en una visita anterior, inyecta el script igualmente sin esperar a que se muestre el banner.
+
+Con esto AdSense nunca se carga sin consentimiento previo.
+
 ### 2026-06-19 — ⚠️ TEMPORAL: pantalla de acceso beta (BetaGate)
 **Archivos afectados:** `src/components/BetaGate.jsx` (nuevo), `src/App.jsx`
 

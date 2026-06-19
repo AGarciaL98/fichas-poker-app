@@ -11,6 +11,12 @@ export default function CookieBanner() {
   function accept() {
     localStorage.setItem(STORAGE_KEY, 'accepted')
     setAccepted(true)
+
+    const script = document.createElement('script')
+    script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5823983592477369'
+    script.async = true
+    script.crossOrigin = 'anonymous'
+    document.head.appendChild(script)
   }
 
   return (
