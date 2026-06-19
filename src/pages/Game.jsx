@@ -17,6 +17,7 @@ import {
 import TableMap from '../components/TableMap'
 import BlindTimer from '../components/BlindTimer'
 import ConfirmModal from '../components/ConfirmModal'
+import RoomClosedModal from '../components/RoomClosedModal'
 
 const PHASE_LABEL = {
   preflop: 'Pre-flop',
@@ -38,7 +39,7 @@ export default function Game() {
   const { roomCode } = useParams()
   const navigate = useNavigate()
   const playerId = getOrCreatePlayerId()
-  const { room, loading } = useRoom(roomCode, playerId)
+  const { room, loading, roomClosed } = useRoom(roomCode, playerId)
 
   // All hooks before any early return
   const [sliderValue, setSliderValue] = useState(null)
@@ -71,6 +72,10 @@ export default function Game() {
       awardPot(roomCode, [survivors[0].id])
     }
   }, [hand.phase, hand.awaitingNewHand])
+
+  if (roomClosed) {
+    return <RoomClosedModal onConfirm={() => navigate('/', { replace: true })} />
+  }
 
   if (loading || !room) {
     return (

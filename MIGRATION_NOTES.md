@@ -57,6 +57,19 @@ Este archivo se actualiza en cada commit que afecte a dependencias, rutas, estil
 
 ## Historial de cambios relevantes
 
+### 2026-06-19 — Pantalla de mesa cerrada + dealer inicial aleatorio
+**Archivos afectados:** `src/components/RoomClosedModal.jsx` (nuevo), `src/pages/Lobby.jsx`, `src/pages/Game.jsx`, `server/index.js`
+
+**Pantalla de mesa cerrada:**
+- Nuevo componente `RoomClosedModal.jsx` (estilo `card-felt` + `btn-gold`, coherente con el resto de la app): mensaje "Mesa cerrada" + botón "Volver al inicio".
+- `Lobby.jsx`: ya escuchaba `roomClosed` pero redirigía en silencio a `/`; ahora renderiza `RoomClosedModal` y solo navega cuando el jugador pulsa el botón.
+- `Game.jsx`: no escuchaba `roomClosed` en absoluto; ahora `useRoom` también se desestructura con `roomClosed` y se renderiza el mismo modal.
+
+**Dealer inicial aleatorio:**
+- `server/index.js`, handler `start-game`: antes `dealerSeat` estaba hardcodeado a `0`. Ahora se elige aleatoriamente entre los seats de los jugadores presentes en ese momento (`seatsPresent[Math.floor(Math.random() * seatsPresent.length)]`).
+- No se ha tocado la rotación del dealer entre manos (`nextInHandSeat`), solo la asignación inicial al pulsar "Iniciar partida".
+- Verificado en vivo con 5 salas de 3 jugadores: el dealer salió en seats 1 y 2 (no siempre 0).
+
 ### 2026-06-19 — Diagnóstico: superposición de jugadores reportada tras el fix de seats (falsa alarma)
 **Archivos revisados:** `src/components/TableMap.jsx`, `server/index.js` (sin cambios de código)
 

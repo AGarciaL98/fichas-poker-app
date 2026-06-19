@@ -274,7 +274,8 @@ io.on('connection', (socket) => {
     const room = rooms[roomCode]
     if (!room) return
     const { players } = room
-    const dealerSeat = 0
+    const seatsPresent = Object.values(players).map((p) => p.seat)
+    const dealerSeat = seatsPresent[Math.floor(Math.random() * seatsPresent.length)]
     const blinds = currentBlinds(room)
     const seats = blindSeats(players, dealerSeat)
 
