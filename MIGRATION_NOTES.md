@@ -57,6 +57,28 @@ Este archivo se actualiza en cada commit que afecte a dependencias, rutas, estil
 
 ## Historial de cambios relevantes
 
+### 2026-06-19 — Iconos PWA: migración de SVG a PNG
+**Archivos afectados:** `vite.config.js`, `index.html`
+
+Los SVG no funcionan como iconos de instalación en iOS Safari. Toda la referencia de iconos se migró a PNG.
+
+**Cambios de configuración:**
+- `vite.config.js` → manifest actualizado: iconos ahora apuntan a PNG (192, 512, 512-maskable). Se añadió `purpose: 'maskable'` al icono 512-maskable para adaptive icons de Android.
+- `index.html` → `apple-touch-icon` cambiado de `icon-192.svg` a `icon-180.png`.
+- `includeAssets` en VitePWA ampliado a `['icons/*.svg', 'icons/*.png']`.
+
+**⚠️ PNG pendientes — pegar en `public/icons/` antes del próximo build:**
+
+| Archivo | Tamaño | Uso |
+|---|---|---|
+| `icon-180.png` | 180×180 px | `apple-touch-icon` — iOS Safari "Añadir a inicio" |
+| `icon-192.png` | 192×192 px | Manifest — Android Chrome instalación |
+| `icon-512.png` | 512×512 px | Manifest — splash screen / Play Store |
+| `icon-512-maskable.png` | 512×512 px | Manifest — adaptive icon Android (zona segura central ~80%) |
+
+**Flujo para generarlos desde la imagen fuente (1024×1024 PNG):**
+Proporcionar la imagen → Claude genera los 4 tamaños con `sharp` a partir de ella.
+
 ### 2026-06-19 — Persistencia de salas con Firebase Realtime Database
 **Archivos afectados:** `server/index.js`, `package.json`, `.env.example`
 
