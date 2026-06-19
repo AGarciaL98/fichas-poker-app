@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import {
   useRoom,
@@ -15,6 +15,7 @@ import {
 } from '../lib/gameLogic'
 import TableMap from '../components/TableMap'
 import BlindTimer from '../components/BlindTimer'
+import ConfirmModal from '../components/ConfirmModal'
 
 const PHASE_LABEL = {
   preflop: 'Pre-flop',
@@ -34,6 +35,7 @@ const NEXT_PHASE_LABEL = {
 
 export default function Game() {
   const { roomCode } = useParams()
+  const navigate = useNavigate()
   const { room, loading } = useRoom(roomCode)
   const playerId = getOrCreatePlayerId()
 
@@ -42,6 +44,7 @@ export default function Game() {
   const [showWinnerPicker, setShowWinnerPicker] = useState(false)
   const [selectedWinners, setSelectedWinners] = useState([])
   const [showDealerMenu, setShowDealerMenu] = useState(false)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
 
   // Derived values (safe with optional chaining when room is null)
   const players = room?.players || {}
@@ -122,13 +125,21 @@ export default function Game() {
 
       {/* ── Top bar ── */}
       <div className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 bg-felt-800 border-b border-felt-600">
-        <div className="flex items-center gap-2">
-          <span className="text-gold-400 font-casino font-bold text-sm tracking-wider">{roomCode}</span>
-          {hand.handNumber > 0 && (
-            <span className="text-[10px] text-gray-500 bg-felt-700 rounded px-1.5 py-0.5">
-              mano #{hand.handNumber}
-            </span>
-          )}
+        <div className="flex items-center gap-3">
+          <button
+            className="text-red-800 text-xs py-1 px-2 rounded-lg border border-red-900 active:bg-red-950 transition-colors"
+            onClick={() => setShowLeaveConfirm(true)}
+          >
+            ✕ Salir
+          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-gold-400 font-casino font-bold text-sm tracking-wider">{roomCode}</span>
+            {hand.handNumber > 0 && (
+              <span className="text-[10px] text-gray-500 bg-felt-700 rounded px-1.5 py-0.5">
+                mano #{hand.handNumber}
+              </span>
+            )}
+          </div>
         </div>
         <BlindTimer room={room} />
       </div>
@@ -295,6 +306,15 @@ export default function Game() {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={showLeaveConfirm}
+        title="¿Abandonar la partida?"
+        message="¿Seguro que quieres salir? Tu lugar en la mesa quedará vacío para el resto de jugadores."
+        confirmLabel="Abandonar"
+        onConfirm={() => navigate('/')}
+        onCancel={() => setShowLeaveConfirm(false)}
+      />
 
       {/* ── Dealer controls — solo aparecen cuando la mano termina ── */}
       {isDealer && hand.phase === 'showdown' && (

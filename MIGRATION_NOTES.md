@@ -57,6 +57,25 @@ Este archivo se actualiza en cada commit que afecte a dependencias, rutas, estil
 
 ## Historial de cambios relevantes
 
+### 2026-06-19 — UX: botón pegar en código de sala + botón Abandonar con confirmación
+**Archivos afectados:** `src/lib/clipboard.js`, `src/components/ConfirmModal.jsx` (nuevo), `src/pages/Home.jsx`, `src/pages/Lobby.jsx`, `src/pages/Game.jsx`
+
+- `clipboard.js` → añadida `pasteFromClipboard()` sobre `navigator.clipboard.readText()`.
+- `ConfirmModal.jsx` → componente compartido de modal de confirmación (sheet inferior, botones Cancelar/Confirmar).
+- `Home.jsx` → botón 📋 "Pegar" junto al input de código de sala en la vista "Unirse a mesa". Usa `pasteFromClipboard`, recorta y normaliza a mayúsculas.
+- `Lobby.jsx` → botón "Abandonar partida" en el footer (visible para host y jugadores). Modal con aviso extra para el host: "la sala quedará sin host y el resto no podrá continuar".
+- `Game.jsx` → botón "✕ Salir" en la top bar (izquierda, visualmente secundario). Modal de confirmación. Añadido `useNavigate`.
+- Sin cambios en lógica de juego ni eventos Socket.io.
+
+### 2026-06-19 — Páginas legales, footer y banner de cookies
+**Archivos afectados:** `src/pages/PrivacyPolicy.jsx` (nuevo), `src/pages/TermsOfUse.jsx` (nuevo), `src/pages/CookiesPolicy.jsx` (nuevo), `src/components/CookieBanner.jsx` (nuevo), `src/App.jsx`, `src/pages/Home.jsx`
+
+- Tres páginas legales creadas con estilo casino coherente con la app.
+- Rutas añadidas en `App.jsx`: `/privacy`, `/terms`, `/cookies`.
+- Footer minimalista en `Home.jsx` (solo en la vista principal) con links a las tres páginas.
+- `CookieBanner`: aparece en primera visita, usa `localStorage` (`cookie_consent`), botón "Aceptar y continuar" + link a política de cookies. Obligatorio por Ley 34/2002 (LSSI) y RGPD para poder mostrar AdSense.
+- Sin cambios en lógica de juego ni en otras páginas.
+
 ### 2026-06-19 — Iconos PWA: migración de SVG a PNG
 **Archivos afectados:** `vite.config.js`, `index.html`
 

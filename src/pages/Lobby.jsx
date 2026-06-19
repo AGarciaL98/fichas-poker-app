@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRoom, startGame } from '../hooks/useRoom'
 import { getOrCreatePlayerId, formatChips, currentBlinds } from '../lib/gameLogic'
 import { copyToClipboard } from '../lib/clipboard'
+import ConfirmModal from '../components/ConfirmModal'
 
 export default function Lobby() {
   const { roomCode } = useParams()
@@ -12,6 +13,7 @@ export default function Lobby() {
   const playerId = getOrCreatePlayerId()
   const [showQR, setShowQR] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
 
   function copyCode() {
     copyToClipboard(roomCode).then(() => {
@@ -137,11 +139,11 @@ export default function Lobby() {
       </div>
 
       {/* Footer */}
-      <div className="flex-shrink-0 px-4 pb-6 pt-3 bg-felt-900 border-t border-felt-600">
+      <div className="flex-shrink-0 px-4 pb-6 pt-3 bg-felt-900 border-t border-felt-600 space-y-3">
         {isHost ? (
           <>
             {players.length < 2 && (
-              <p className="text-center text-gray-500 text-sm mb-2">
+              <p className="text-center text-gray-500 text-sm">
                 Necesitas al menos 2 jugadores para iniciar
               </p>
             )}
@@ -158,7 +160,26 @@ export default function Lobby() {
             Esperando a que el dealer inicie la partida…
           </p>
         )}
+        <button
+          className="w-full py-2 text-sm text-red-800 border border-red-900 rounded-xl active:bg-red-950 transition-colors"
+          onClick={() => setShowLeaveConfirm(true)}
+        >
+          Abandonar partida
+        </button>
       </div>
+
+      <ConfirmModal
+        isOpen={showLeaveConfirm}
+        title="¿Abandonar la partida?"
+        message={
+          isHost
+            ? 'Eres el dealer de esta sala. Si abandonas, la sala quedará sin host y el resto de jugadores no podrán continuar.'
+            : '¿Seguro que quieres abandonar? Podrás volver a unirte mientras la sala siga activa.'
+        }
+        confirmLabel="Abandonar"
+        onConfirm={() => navigate('/')}
+        onCancel={() => setShowLeaveConfirm(false)}
+      />
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { generateRoomCode, getOrCreatePlayerId, DEFAULT_BLIND_LEVELS } from '../lib/gameLogic'
 import { createRoom, joinRoom } from '../hooks/useRoom'
+import { pasteFromClipboard } from '../lib/clipboard'
 
 const SUIT_ICONS = ['♠', '♥', '♦', '♣']
 
@@ -122,24 +123,33 @@ export default function Home() {
 
   if (view === 'home') {
     return (
-      <div className="flex flex-col h-full items-center justify-center gap-6 p-6">
-        <div className="text-center mb-4">
-          <div className="text-5xl mb-3 flex justify-center gap-2">
-            {SUIT_ICONS.map((s, i) => (
-              <span key={i} className={i % 2 === 0 ? 'text-white' : 'text-red-500'}>{s}</span>
-            ))}
+      <div className="flex flex-col h-full p-6">
+        <div className="flex-1 flex flex-col items-center justify-center gap-6">
+          <div className="text-center mb-4">
+            <div className="text-5xl mb-3 flex justify-center gap-2">
+              {SUIT_ICONS.map((s, i) => (
+                <span key={i} className={i % 2 === 0 ? 'text-white' : 'text-red-500'}>{s}</span>
+              ))}
+            </div>
+            <h1 className="text-3xl font-casino font-bold text-gold-400 tracking-wider">FichasPoker</h1>
+            <p className="text-gray-400 text-sm mt-1">Póker con amigos, sin fichas físicas</p>
           </div>
-          <h1 className="text-3xl font-casino font-bold text-gold-400 tracking-wider">FichasPoker</h1>
-          <p className="text-gray-400 text-sm mt-1">Póker con amigos, sin fichas físicas</p>
+          <div className="w-full flex flex-col gap-3">
+            <button className="btn-gold w-full text-lg py-4" onClick={() => setView('create')}>
+              Crear mesa
+            </button>
+            <button className="btn-ghost w-full text-lg py-4" onClick={() => setView('join')}>
+              Unirse a mesa
+            </button>
+          </div>
         </div>
-        <div className="w-full flex flex-col gap-3">
-          <button className="btn-gold w-full text-lg py-4" onClick={() => setView('create')}>
-            Crear mesa
-          </button>
-          <button className="btn-ghost w-full text-lg py-4" onClick={() => setView('join')}>
-            Unirse a mesa
-          </button>
-        </div>
+        <footer className="flex justify-center gap-4 py-2">
+          <Link to="/privacy" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">Privacidad</Link>
+          <span className="text-gray-700 text-xs">·</span>
+          <Link to="/terms" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">Términos</Link>
+          <span className="text-gray-700 text-xs">·</span>
+          <Link to="/cookies" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">Cookies</Link>
+        </footer>
       </div>
     )
   }
@@ -165,13 +175,28 @@ export default function Home() {
           </div>
           <div>
             <label className="label-sm mb-1 block">Código de sala</label>
-            <input
-              className="input-field text-2xl text-center tracking-[0.3em] uppercase"
-              placeholder="XXXXX"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              maxLength={5}
-            />
+            <div className="flex gap-2">
+              <input
+                className="input-field text-2xl text-center tracking-[0.3em] uppercase flex-1"
+                placeholder="XXXXX"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                maxLength={5}
+              />
+              <button
+                type="button"
+                className="bg-felt-800 border border-felt-600 rounded-xl px-3 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
+                onClick={() =>
+                  pasteFromClipboard()
+                    .then((text) => setJoinCode(text.trim().toUpperCase().slice(0, 5)))
+                    .catch(() => {})
+                }
+                title="Pegar código"
+              >
+                <span className="text-xl">📋</span>
+                <span className="text-[10px] text-gray-500">Pegar</span>
+              </button>
+            </div>
           </div>
           {error && <p className="text-red-400 text-sm text-center">{error}</p>}
           <button className="btn-gold w-full text-lg py-4 mt-2" onClick={handleJoin} disabled={loading}>

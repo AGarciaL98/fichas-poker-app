@@ -5,3 +5,7 @@
 export async function copyToClipboard(text) {
   return navigator.clipboard.writeText(text)
 }
+
+export async function pasteFromClipboard() {
+  return navigator.clipboard.readText()
+}
