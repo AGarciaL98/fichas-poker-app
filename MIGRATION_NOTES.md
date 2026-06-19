@@ -57,6 +57,11 @@ Este archivo se actualiza en cada commit que afecte a dependencias, rutas, estil
 
 ## Historial de cambios relevantes
 
+### 2026-06-19 — Banner de Home a pantalla completa (full-bleed)
+**Archivos afectados:** `src/pages/Home.jsx`
+
+Se quitaron los palos de la baraja (♠♥♦♣) sobre el banner y el límite `max-w-[280px]` de la imagen. El `<img>` del logo ahora es hermano directo del contenedor raíz (antes de cualquier `div` con padding), así queda a ancho completo de pantalla sin depender de márgenes negativos para "romper" el padding — evita asimetrías de centrado. El eslogan "Póker con amigos, sin fichas físicas" pasa a una sola línea, mismo color, algo más marcado (`font-semibold`) para darle algo más de presencia sin competir con la foto.
+
 ### 2026-06-19 — Iconos PWA regenerados + logo banner en Home
 
 **Iconos PWA:** regenerados `icon-180.png`, `icon-192.png`, `icon-512.png` e `icon-512-maskable.png` en `public/icons/` a partir del nuevo `public/icons/iconoAPP.jpeg` (sustituye a `iconoAPP.png`, que pasa a `iconoAPP-old.png` como respaldo sin trackear), usando `sharp` (mismo método que en el commit `9553221`): resize directo para los planos, y composición sobre fondo `#0d4a1f` con zona segura del 80% para el maskable.

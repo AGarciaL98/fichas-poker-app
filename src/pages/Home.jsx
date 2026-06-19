@@ -4,8 +4,6 @@ import { generateRoomCode, getOrCreatePlayerId, DEFAULT_BLIND_LEVELS } from '../
 import { createRoom, joinRoom } from '../hooks/useRoom'
 import { pasteFromClipboard } from '../lib/clipboard'
 
-const SUIT_ICONS = ['♠', '♥', '♦', '♣']
-
 const PRESET_STRUCTURES = {
   rapida: [
     { small: 25, big: 50 },
@@ -123,37 +121,34 @@ export default function Home() {
 
   if (view === 'home') {
     return (
-      <div className="flex flex-col h-full p-6">
-        <div className="flex-1 flex flex-col items-center justify-center gap-6">
-          <div className="text-center mb-4">
-            <div className="text-5xl mb-3 flex justify-center gap-2">
-              {SUIT_ICONS.map((s, i) => (
-                <span key={i} className={i % 2 === 0 ? 'text-white' : 'text-red-500'}>{s}</span>
-              ))}
+      <div className="flex flex-col h-full">
+        <img
+          src="/images/logo-banner.jpeg"
+          alt="MaletínPoker"
+          className="block w-full h-auto"
+        />
+        <div className="flex-1 flex flex-col p-6 min-h-0">
+          <div className="flex-1 flex flex-col items-center justify-center gap-6">
+            <p className="text-gray-300 text-sm font-semibold tracking-wide text-center -mt-4">
+              Póker con amigos, sin fichas físicas
+            </p>
+            <div className="w-full flex flex-col gap-3">
+              <button className="btn-gold w-full text-lg py-4" onClick={() => setView('create')}>
+                Crear mesa
+              </button>
+              <button className="btn-ghost w-full text-lg py-4" onClick={() => setView('join')}>
+                Unirse a mesa
+              </button>
             </div>
-            <img
-              src="/images/logo-banner.jpeg"
-              alt="MaletínPoker"
-              className="w-full max-w-[280px] h-auto mx-auto"
-            />
-            <p className="text-gray-400 text-sm mt-1">Póker con amigos, sin fichas físicas</p>
           </div>
-          <div className="w-full flex flex-col gap-3">
-            <button className="btn-gold w-full text-lg py-4" onClick={() => setView('create')}>
-              Crear mesa
-            </button>
-            <button className="btn-ghost w-full text-lg py-4" onClick={() => setView('join')}>
-              Unirse a mesa
-            </button>
-          </div>
+          <footer className="flex justify-center gap-4 py-2">
+            <Link to="/privacy" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">Privacidad</Link>
+            <span className="text-gray-700 text-xs">·</span>
+            <Link to="/terms" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">Términos</Link>
+            <span className="text-gray-700 text-xs">·</span>
+            <Link to="/cookies" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">Cookies</Link>
+          </footer>
         </div>
-        <footer className="flex justify-center gap-4 py-2">
-          <Link to="/privacy" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">Privacidad</Link>
-          <span className="text-gray-700 text-xs">·</span>
-          <Link to="/terms" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">Términos</Link>
-          <span className="text-gray-700 text-xs">·</span>
-          <Link to="/cookies" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">Cookies</Link>
-        </footer>
       </div>
     )
   }
