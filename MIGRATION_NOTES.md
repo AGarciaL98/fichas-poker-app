@@ -57,6 +57,16 @@ Este archivo se actualiza en cada commit que afecte a dependencias, rutas, estil
 
 ## Historial de cambios relevantes
 
+### 2026-06-19 — Diagnóstico: superposición de jugadores reportada tras el fix de seats (falsa alarma)
+**Archivos revisados:** `src/components/TableMap.jsx`, `server/index.js` (sin cambios de código)
+
+Tras aplicar el fix de colisión de seats, se reportó que el bug visual seguía igual probando en local. Diagnóstico:
+
+- Simulación manual de `computePosition`/`visualIndex` con seats 0 y 1 (n=2) confirma que la fórmula es correcta: cada jugador se ve a sí mismo en `(50, 90)` y al rival en `(50, 10)`.
+- Prueba en vivo con dos clientes Socket.io reales contra el servidor confirmó que `create-room`/`join-room` ya asignan seats distintos (0 y 1) correctamente.
+- Causa real: estado obsoleto del navegador. El servidor local no tiene Firebase configurado (`FIREBASE_DATABASE_URL no configurada — usando solo memoria`), así que al reiniciar `npm run dev` se perdieron las salas en memoria; las pestañas que ya tenían una sala abierta de **antes** del fix/reinicio se quedaron con el último `room-update` recibido (con seats duplicados del bug original) y `rejoin-room` no las pudo corregir porque esa sala ya no existe en el servidor.
+- Confirmado con una sala nueva tras el reinicio: el posicionamiento funciona correctamente. No se requiere ningún cambio adicional de código.
+
 ### 2026-06-19 — Fix: colisión de seats tras leave-room/disconnect (jugadores superpuestos en la mesa)
 **Archivos afectados:** `server/index.js`
 
