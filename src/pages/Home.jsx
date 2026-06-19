@@ -131,7 +131,11 @@ export default function Home() {
                 <span key={i} className={i % 2 === 0 ? 'text-white' : 'text-red-500'}>{s}</span>
               ))}
             </div>
-            <h1 className="text-3xl font-casino font-bold text-gold-400 tracking-wider">FichasPoker</h1>
+            <img
+              src="/images/logo-banner.jpeg"
+              alt="MaletínPoker"
+              className="w-full max-w-[280px] h-auto mx-auto"
+            />
             <p className="text-gray-400 text-sm mt-1">Póker con amigos, sin fichas físicas</p>
           </div>
           <div className="w-full flex flex-col gap-3">

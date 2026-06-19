@@ -57,6 +57,12 @@ Este archivo se actualiza en cada commit que afecte a dependencias, rutas, estil
 
 ## Historial de cambios relevantes
 
+### 2026-06-19 — Iconos PWA regenerados + logo banner en Home
+
+**Iconos PWA:** regenerados `icon-180.png`, `icon-192.png`, `icon-512.png` e `icon-512-maskable.png` en `public/icons/` a partir del nuevo `public/icons/iconoAPP.jpeg` (sustituye a `iconoAPP.png`, que pasa a `iconoAPP-old.png` como respaldo sin trackear), usando `sharp` (mismo método que en el commit `9553221`): resize directo para los planos, y composición sobre fondo `#0d4a1f` con zona segura del 80% para el maskable.
+
+**Logo banner en Home:** `src/pages/Home.jsx` — el `<h1>FichasPoker</h1>` se sustituyó por `<img src="/images/logo-banner.jpeg">` (centrado, `max-w-[280px]`, `h-auto`, responsive). Nueva imagen en `public/images/logo-banner.jpeg`.
+
 ### 2026-06-19 — AdSense solo se carga tras consentimiento de cookies (RGPD)
 **Archivos afectados:** `index.html`, `src/components/CookieBanner.jsx`, `src/App.jsx`
 
