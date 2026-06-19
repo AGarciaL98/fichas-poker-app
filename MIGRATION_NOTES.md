@@ -57,6 +57,24 @@ Este archivo se actualiza en cada commit que afecte a dependencias, rutas, estil
 
 ## Historial de cambios relevantes
 
+### 2026-06-19 — Configuración de despliegue (Firebase Hosting + Render)
+**Archivos afectados:** `server/index.js`, `render.yaml` (nuevo), `.env.example`, `.firebaserc` (nuevo), `firebase.json` (nuevo), `package.json`
+
+- `server/index.js` → puerto cambiado de `3001` hardcodeado a `process.env.PORT || 3001` para compatibilidad con Render.
+- `render.yaml` creado: define el servicio web con `npm install` como build command y `node server/index.js` como start command.
+- `.env.example` → añadida variable `VITE_SOCKET_URL=` (vacía; rellenar con la URL de Render tras el despliegue).
+- `.firebaserc` creado: apunta al proyecto Firebase `fichaspoker`.
+- `firebase.json` creado: Firebase Hosting con `dist` como carpeta pública y rewrite SPA (`** → /index.html`).
+- `package.json` → añadido script `deploy`: `npm run build && firebase deploy`.
+- `.gitignore` ya excluía `.env`; `.env.example` no está excluido (correcto).
+
+**Flujo de despliegue:**
+1. Subir servidor a Render → copiar la URL pública.
+2. Crear `.env.production` con `VITE_SOCKET_URL=<url-render>`.
+3. `npm run deploy` → build + Firebase Hosting.
+
+
+
 ### 2026-06-10 — Abstracciones para Capacitor
 **Archivos afectados:** `src/lib/clipboard.js` (nuevo), `src/lib/storage.js` (nuevo), `src/lib/config.js` (nuevo), `src/lib/socket.js`, `src/lib/gameLogic.js`, `src/pages/Lobby.jsx`, `capacitor.config.ts` (nuevo)
 

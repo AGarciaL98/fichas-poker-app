@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: fichaspoker-server
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server/index.js
+    envVars:
+      - key: PORT
+        generateValue: false

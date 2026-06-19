@@ -343,7 +343,7 @@ io.on('connection', (socket) => {
   })
 })
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 httpServer.listen(PORT, () => {
   console.log(`\x1b[34m[server]\x1b[0m FichasPoker en http://localhost:${PORT}`)
 })
