@@ -57,6 +57,33 @@ Este archivo se actualiza en cada commit que afecte a dependencias, rutas, estil
 
 ## Historial de cambios relevantes
 
+### 2026-06-19 — Persistencia de salas con Firebase Realtime Database
+**Archivos afectados:** `server/index.js`, `package.json`, `.env.example`
+
+- `server/index.js` → `rooms` sigue siendo un objeto en memoria (caché), pero ahora se persiste en Firebase bajo `/rooms/{roomCode}` tras cada `broadcast`.
+- Al arrancar el servidor, `loadRooms()` recupera todas las salas guardadas en Firebase antes de aceptar conexiones.
+- `persist(roomCode)` actualiza `rooms[roomCode].lastActivity` y hace `set` en Firebase (fire-and-forget).
+- `deleteRoom(roomCode)` elimina del caché local y de Firebase.
+- Un `setInterval` cada hora elimina salas con `lastActivity` > 12 h.
+- Fallback graceful: si `FIREBASE_DATABASE_URL` no está configurada, el servidor opera solo en memoria (útil en local sin Firebase).
+- La lógica de juego (Socket.io events, `checkStreetEnd`, etc.) no cambia.
+- Instalado paquete `firebase` (v12) en `dependencies`.
+- Añadida variable `FIREBASE_DATABASE_URL=` a `.env.example` (sin prefijo `VITE_` — es solo del servidor).
+
+**Reglas de seguridad Firebase recomendadas** (Realtime Database → Rules):
+```json
+{
+  "rules": {
+    "rooms": {
+      "$roomCode": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
+```
+
 ### 2026-06-19 — Configuración de despliegue (Firebase Hosting + Render)
 **Archivos afectados:** `server/index.js`, `render.yaml` (nuevo), `.env.example`, `.firebaserc` (nuevo), `firebase.json` (nuevo), `package.json`
 

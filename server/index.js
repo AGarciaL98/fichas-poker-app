@@ -1,5 +1,7 @@
 import { createServer } from 'http'
 import { Server } from 'socket.io'
+import { initializeApp } from 'firebase/app'
+import { getDatabase, ref, set, get, remove } from 'firebase/database'
 import {
   activePlayers,
   blindSeats,
@@ -10,12 +12,72 @@ import {
   DEFAULT_BLIND_LEVELS,
 } from '../src/lib/gameLogic.js'
 
+// ─── Firebase setup ───────────────────────────────────────────────────────────
+
+const FIREBASE_DATABASE_URL = process.env.FIREBASE_DATABASE_URL
+let db = null
+
+if (FIREBASE_DATABASE_URL) {
+  const firebaseApp = initializeApp({ databaseURL: FIREBASE_DATABASE_URL })
+  db = getDatabase(firebaseApp)
+  console.log('[firebase] Realtime Database conectada')
+} else {
+  console.warn('[firebase] FIREBASE_DATABASE_URL no configurada — usando solo memoria')
+}
+
+const dbRef = (path) => ref(db, path)
+
+async function loadRooms() {
+  if (!db) return
+  try {
+    const snapshot = await get(dbRef('rooms'))
+    if (snapshot.exists()) {
+      Object.assign(rooms, snapshot.val())
+      console.log(`[firebase] ${Object.keys(rooms).length} sala(s) recuperada(s)`)
+    }
+  } catch (e) {
+    console.error('[firebase] Error al cargar salas:', e.message)
+  }
+}
+
+function persist(roomCode) {
+  if (!db || !rooms[roomCode]) return
+  rooms[roomCode].lastActivity = Date.now()
+  set(dbRef(`rooms/${roomCode}`), rooms[roomCode]).catch((e) =>
+    console.error('[firebase] Error al persistir sala:', e.message)
+  )
+}
+
+function deleteRoom(roomCode) {
+  delete rooms[roomCode]
+  if (!db) return
+  remove(dbRef(`rooms/${roomCode}`)).catch((e) =>
+    console.error('[firebase] Error al eliminar sala:', e.message)
+  )
+}
+
+// Elimina salas sin actividad en más de 12 horas
+const TWELVE_HOURS = 12 * 60 * 60 * 1000
+setInterval(() => {
+  const now = Date.now()
+  for (const [code, room] of Object.entries(rooms)) {
+    const lastActive = room.lastActivity || room.createdAt || 0
+    if (now - lastActive > TWELVE_HOURS) {
+      console.log(`[firebase] Sala ${code} expirada — eliminando`)
+      deleteRoom(code)
+    }
+  }
+}, 60 * 60 * 1000)
+
+// ─── Socket.io ────────────────────────────────────────────────────────────────
+
 const httpServer = createServer()
 const io = new Server(httpServer, { cors: { origin: '*' } })
 const rooms = {}
 
 function broadcast(roomCode) {
   io.to(roomCode).emit('room-update', rooms[roomCode])
+  persist(roomCode)
 }
 
 // ─── Street-end detection ─────────────────────────────────────────────────────
@@ -96,6 +158,7 @@ io.on('connection', (socket) => {
       code: roomCode,
       status: 'waiting',
       createdAt: Date.now(),
+      lastActivity: Date.now(),
       config,
       host: player.id,
       blindLevel: 0,
@@ -118,6 +181,7 @@ io.on('connection', (socket) => {
     socket.join(roomCode)
     cb?.({ ok: true })
     socket.emit('room-update', rooms[roomCode])
+    persist(roomCode)
   })
 
   socket.on('join-room', ({ roomCode, player }, cb) => {
@@ -343,7 +407,11 @@ io.on('connection', (socket) => {
   })
 })
 
+// ─── Start ────────────────────────────────────────────────────────────────────
+
 const PORT = process.env.PORT || 3001
-httpServer.listen(PORT, () => {
-  console.log(`\x1b[34m[server]\x1b[0m FichasPoker en http://localhost:${PORT}`)
+loadRooms().then(() => {
+  httpServer.listen(PORT, () => {
+    console.log(`\x1b[34m[server]\x1b[0m FichasPoker en http://localhost:${PORT}`)
+  })
 })
