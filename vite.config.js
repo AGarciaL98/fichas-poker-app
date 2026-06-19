@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.svg', 'icons/*.png'],
       manifest: {
-        name: 'FichasPoker',
-        short_name: 'FichasPoker',
+        name: 'MaletínPoker',
+        short_name: 'MaletínPoker',
         description: 'Póker con amigos sin fichas físicas',
         theme_color: '#0d4a1f',
         background_color: '#0a1f0f',
