@@ -6,6 +6,7 @@ import {
   newHand,
   awardPot,
   increaseBlinds,
+  leaveRoom,
 } from '../hooks/useRoom'
 import {
   getOrCreatePlayerId,
@@ -36,8 +37,8 @@ const NEXT_PHASE_LABEL = {
 export default function Game() {
   const { roomCode } = useParams()
   const navigate = useNavigate()
-  const { room, loading } = useRoom(roomCode)
   const playerId = getOrCreatePlayerId()
+  const { room, loading } = useRoom(roomCode, playerId)
 
   // All hooks before any early return
   const [sliderValue, setSliderValue] = useState(null)
@@ -312,7 +313,7 @@ export default function Game() {
         title="¿Abandonar la partida?"
         message="¿Seguro que quieres salir? Tu lugar en la mesa quedará vacío para el resto de jugadores."
         confirmLabel="Abandonar"
-        onConfirm={() => navigate('/')}
+        onConfirm={() => { leaveRoom(roomCode, playerId); navigate('/') }}
         onCancel={() => setShowLeaveConfirm(false)}
       />
 

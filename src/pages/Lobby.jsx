@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { useEffect, useState } from 'react'
-import { useRoom, startGame } from '../hooks/useRoom'
+import { useRoom, startGame, leaveRoom } from '../hooks/useRoom'
 import { getOrCreatePlayerId, formatChips, currentBlinds } from '../lib/gameLogic'
 import { copyToClipboard } from '../lib/clipboard'
 import ConfirmModal from '../components/ConfirmModal'
@@ -9,8 +9,12 @@ import ConfirmModal from '../components/ConfirmModal'
 export default function Lobby() {
   const { roomCode } = useParams()
   const navigate = useNavigate()
-  const { room, loading } = useRoom(roomCode)
   const playerId = getOrCreatePlayerId()
+  const { room, loading, roomClosed } = useRoom(roomCode, playerId)
+
+  useEffect(() => {
+    if (roomClosed) navigate('/', { replace: true })
+  }, [roomClosed])
   const [showQR, setShowQR] = useState(false)
   const [copied, setCopied] = useState(false)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
@@ -177,7 +181,7 @@ export default function Lobby() {
             : '¿Seguro que quieres abandonar? Podrás volver a unirte mientras la sala siga activa.'
         }
         confirmLabel="Abandonar"
-        onConfirm={() => navigate('/')}
+        onConfirm={() => { leaveRoom(roomCode, playerId); navigate('/') }}
         onCancel={() => setShowLeaveConfirm(false)}
       />
     </div>

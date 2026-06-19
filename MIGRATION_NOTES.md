@@ -57,6 +57,28 @@ Este archivo se actualiza en cada commit que afecte a dependencias, rutas, estil
 
 ## Historial de cambios relevantes
 
+### 2026-06-19 — Fix: colisión de seats tras leave-room/disconnect (jugadores superpuestos en la mesa)
+**Archivos afectados:** `server/index.js`
+
+**Bug:** `join-room` asignaba `seat = Object.keys(room.players).length`, válido solo mientras nadie se borraba de `room.players`. Tras introducir `leave-room`/`disconnect` (que sí borran jugadores del Lobby), el conteo dejó de coincidir con el siguiente seat libre y dos jugadores podían recibir el mismo `seat` → en `TableMap.jsx` ambos calculan el mismo `visualIndex` y se renderizan superpuestos (normalmente abajo en el centro).
+
+**Fix:** al unirse, calcular el primer entero libre en `[0, n]` comprobando los seats ya ocupados (`usedSeats`) en vez de usar el tamaño del objeto `players`.
+
+### 2026-06-19 — Fix: leave-room, host-leaves, disconnect en Lobby, auto-fold en Game
+**Archivos afectados:** `server/index.js`, `src/hooks/useRoom.js`, `src/pages/Lobby.jsx`, `src/pages/Game.jsx`
+
+**Bugs corregidos:**
+- `leave-room` (server): nuevo handler que elimina al jugador de la sala (Lobby) o lo auto-foldea (Game activo).
+- Host abandona Lobby: el servidor emite `room-closed` a los jugadores restantes antes de eliminar la sala; Lobby.jsx escucha `room-closed` y redirige a `/`.
+- Desconexión en Lobby: `socket.on('disconnect')` con mapa `socketPlayers` (socketId → {roomCode, playerId}). Solo actúa si `room.status === 'waiting'`; para partidas activas se necesitaría período de gracia (no implementado).
+- Abandono durante partida activa (Game.jsx): `leave-room` auto-foldea al jugador si estaba `'active'`, avanza el turno si era el suyo, llama `checkStreetEnd` y hace broadcast. No elimina al jugador del objeto `players` (sus fichas quedan en mesa para esa mano).
+
+**Cambios de arquitectura:**
+- `socketPlayers` map en servidor registra socketId al hacer create-room/join-room/rejoin-room.
+- `useRoom` hook acepta `playerId` como segundo argumento y lo pasa en `rejoin-room` para mantener el tracking.
+- `useRoom` devuelve `roomClosed` (boolean) que Lobby.jsx usa para navegar a `/` cuando el servidor cierra la sala.
+- `leaveRoom(roomCode, playerId)` exportada desde `useRoom.js`.
+
 ### 2026-06-19 — UX: botón pegar en código de sala + botón Abandonar con confirmación
 **Archivos afectados:** `src/lib/clipboard.js`, `src/components/ConfirmModal.jsx` (nuevo), `src/pages/Home.jsx`, `src/pages/Lobby.jsx`, `src/pages/Game.jsx`
 

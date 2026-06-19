@@ -3,9 +3,10 @@ import { socket } from '../lib/socket'
 
 // ─── React hook ──────────────────────────────────────────────────────────────
 
-export function useRoom(roomCode) {
+export function useRoom(roomCode, playerId) {
   const [room, setRoom] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [roomClosed, setRoomClosed] = useState(false)
 
   useEffect(() => {
     if (!roomCode) return
@@ -16,15 +17,19 @@ export function useRoom(roomCode) {
         setLoading(false)
       }
     }
+    function onClosed() { setRoomClosed(true) }
 
     socket.on('room-update', onUpdate)
-    // Rejoin socket room on mount / page refresh
-    socket.emit('rejoin-room', { roomCode })
+    socket.on('room-closed', onClosed)
+    socket.emit('rejoin-room', { roomCode, playerId })
 
-    return () => socket.off('room-update', onUpdate)
+    return () => {
+      socket.off('room-update', onUpdate)
+      socket.off('room-closed', onClosed)
+    }
   }, [roomCode])
 
-  return { room, loading }
+  return { room, loading, roomClosed }
 }
 
 // ─── Actions (all synchronous — server broadcasts updates) ───────────────────
@@ -64,3 +69,6 @@ export const awardPot = (roomCode, winnerIds) =>
 
 export const increaseBlinds = (roomCode) =>
   socket.emit('increase-blinds', { roomCode })
+
+export const leaveRoom = (roomCode, playerId) =>
+  socket.emit('leave-room', { roomCode, playerId })

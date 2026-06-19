@@ -75,9 +75,50 @@ const httpServer = createServer()
 const io = new Server(httpServer, { cors: { origin: '*' } })
 const rooms = {}
 
+// socketId → { roomCode, playerId } — para detectar desconexiones
+const socketPlayers = {}
+
 function broadcast(roomCode) {
   io.to(roomCode).emit('room-update', rooms[roomCode])
   persist(roomCode)
+}
+
+// Lógica compartida entre leave-room y disconnect
+function handlePlayerLeave(roomCode, playerId) {
+  const room = rooms[roomCode]
+  if (!room) return
+
+  if (room.status === 'playing') {
+    // Durante partida: auto-fold si estaba activo; no eliminar de la sala
+    const player = room.players[playerId]
+    if (player && player.status === 'active') {
+      player.status = 'folded'
+      if (room.hand?.currentTurn === player.seat) {
+        room.hand.currentTurn = nextInHandSeat(room.players, player.seat)
+      }
+      if (!room.hand.acted) room.hand.acted = []
+      if (!room.hand.acted.includes(playerId)) room.hand.acted.push(playerId)
+      checkStreetEnd(room)
+      broadcast(roomCode)
+    }
+    return
+  }
+
+  // En Lobby: eliminar al jugador
+  delete room.players[playerId]
+
+  if (Object.keys(room.players).length === 0) {
+    deleteRoom(roomCode)
+    return
+  }
+
+  if (room.host === playerId) {
+    // Host se fue con jugadores dentro — cerrar sala para todos
+    io.to(roomCode).emit('room-closed')
+    deleteRoom(roomCode)
+  } else {
+    broadcast(roomCode)
+  }
 }
 
 // ─── Street-end detection ─────────────────────────────────────────────────────
@@ -179,6 +220,7 @@ io.on('connection', (socket) => {
       },
     }
     socket.join(roomCode)
+    socketPlayers[socket.id] = { roomCode, playerId: player.id }
     cb?.({ ok: true })
     socket.emit('room-update', rooms[roomCode])
     persist(roomCode)
@@ -188,7 +230,9 @@ io.on('connection', (socket) => {
     const room = rooms[roomCode]
     if (!room) return cb?.({ error: 'Sala no encontrada' })
     if (!room.players[player.id]) {
-      const seat = Object.keys(room.players).length
+      const usedSeats = new Set(Object.values(room.players).map((p) => p.seat))
+      let seat = 0
+      while (usedSeats.has(seat)) seat++
       room.players[player.id] = {
         id: player.id,
         name: player.name,
@@ -200,13 +244,30 @@ io.on('connection', (socket) => {
       }
     }
     socket.join(roomCode)
+    socketPlayers[socket.id] = { roomCode, playerId: player.id }
     cb?.({ ok: true })
     broadcast(roomCode)
   })
 
-  socket.on('rejoin-room', ({ roomCode }) => {
+  socket.on('rejoin-room', ({ roomCode, playerId }) => {
     socket.join(roomCode)
+    if (playerId) socketPlayers[socket.id] = { roomCode, playerId }
     if (rooms[roomCode]) socket.emit('room-update', rooms[roomCode])
+  })
+
+  socket.on('leave-room', ({ roomCode, playerId }) => {
+    delete socketPlayers[socket.id]
+    handlePlayerLeave(roomCode, playerId)
+  })
+
+  socket.on('disconnect', () => {
+    const info = socketPlayers[socket.id]
+    delete socketPlayers[socket.id]
+    if (!info) return
+    const room = rooms[info.roomCode]
+    // Solo actuar en Lobby — en partida activa se necesita gracia de reconexión
+    if (!room || room.status !== 'waiting') return
+    handlePlayerLeave(info.roomCode, info.playerId)
   })
 
   socket.on('start-game', ({ roomCode }) => {
