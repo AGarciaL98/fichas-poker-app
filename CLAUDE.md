@@ -42,4 +42,4 @@ npm run preview  # Preview del build en local
 
 ## Commits
 
-Al hacer un commit: `git add -A` + mensaje descriptivo en español de los cambios sustanciales + `git push`.
+Al hacer un commit: `git add -A` + mensaje descriptivo en español de los cambios sustanciales + commit. Inmediatamente después, sin pedir confirmación, ejecutar en este orden: `npm run deploy` (build + `firebase deploy`) y luego `git push origin main`. Todo en segundo plano, sin que el usuario tenga que tocar la terminal.

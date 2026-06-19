@@ -57,6 +57,17 @@ Este archivo se actualiza en cada commit que afecte a dependencias, rutas, estil
 
 ## Historial de cambios relevantes
 
+### 2026-06-19 — ⚠️ TEMPORAL: pantalla de acceso beta (BetaGate)
+**Archivos afectados:** `src/components/BetaGate.jsx` (nuevo), `src/App.jsx`
+
+Mientras se prueba la app con amigos antes de un lanzamiento público, `App.jsx` está envuelto en `<BetaGate>`, que bloquea toda la app detrás de una pantalla "App en desarrollo" con un campo de código de acceso (`Villafranca2026`, hardcodeado en el componente). Si el código es correcto, guarda `beta_unlocked=true` en `localStorage` (uso directo, no pasa por `src/lib/storage.js` — es desechable) y no vuelve a pedirlo en ese navegador.
+
+Easter egg: si se pulsa "Entrar" con el campo vacío, muestra "Por favor introduce el código" en rojo; si se pulsa 3 veces seguidas en menos de 5 segundos con el campo vacío, desbloquea el acceso sin código y sin ningún mensaje especial.
+
+**Esto NO es parte de la lógica del juego ni debe tenerse en cuenta en la migración a Capacitor.** Para quitarlo cuando la app sea pública:
+1. Eliminar `src/components/BetaGate.jsx`.
+2. En `App.jsx`, quitar el `import BetaGate` y el wrapper `<BetaGate>...</BetaGate>` (dejando el `<div className="h-full w-full max-w-md mx-auto flex flex-col">` directamente como raíz).
+
 ### 2026-06-19 — Pantalla de mesa cerrada + dealer inicial aleatorio
 **Archivos afectados:** `src/components/RoomClosedModal.jsx` (nuevo), `src/pages/Lobby.jsx`, `src/pages/Game.jsx`, `server/index.js`
 
