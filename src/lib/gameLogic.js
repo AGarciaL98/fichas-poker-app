@@ -1,15 +1,30 @@
+import { getItem, setItem } from './storage.js'
+
 // Generates a random 5-char room code
 export function generateRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
-// Unique ID per page load — generated in memory so each tab gets its own identity
-// regardless of whether sessionStorage was inherited from a parent tab.
-const _TAB_PLAYER_ID = crypto.randomUUID()
+// Stable player identity persisted in sessionStorage (via storage.js): survives a tab
+// reload so the player can re-join the same hand after an F5, but stays scoped to the
+// tab (each tab = its own player). Falls back to an in-memory id if storage is unavailable.
+const PLAYER_ID_KEY = 'playerId'
+let _memoryPlayerId = null
 
 export function getOrCreatePlayerId() {
-  return _TAB_PLAYER_ID
+  try {
+    let id = getItem(PLAYER_ID_KEY)
+    if (!id) {
+      id = crypto.randomUUID()
+      setItem(PLAYER_ID_KEY, id)
+    }
+    return id
+  } catch {
+    // storage blocked/unavailable — keep a single id for this page load
+    if (!_memoryPlayerId) _memoryPlayerId = crypto.randomUUID()
+    return _memoryPlayerId
+  }
 }
 
 // Returns active (non-out) players sorted by seat
