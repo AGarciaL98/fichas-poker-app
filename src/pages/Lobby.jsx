@@ -101,7 +101,7 @@ export default function Lobby() {
       {/* Config summary */}
       <div className="flex-shrink-0 card-felt mx-4 mb-3 px-4 py-3">
         <div className="flex justify-around text-center">
-          <Stat label="Fichas" value={formatChips(room.config?.startingChips)} />
+          <Stat label="Fichas" value={formatChips(room.config?.startingChips, blinds.small)} />
           <div className="w-px bg-felt-600" />
           <Stat
             label="Nivel 1"
@@ -139,7 +139,7 @@ export default function Lobby() {
               )}
               {p.id === playerId && <span className="text-[10px] text-gray-500">(tú)</span>}
             </div>
-            <span className="text-gold-400 font-semibold">{formatChips(p.chips)}</span>
+            <span className="text-gold-400 font-semibold">{formatChips(p.chips, blinds.small)}</span>
           </div>
         ))}
       </div>

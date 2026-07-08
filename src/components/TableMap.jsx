@@ -37,7 +37,7 @@ function playerColor(seat) {
   return PLAYER_COLORS[seat % PLAYER_COLORS.length]
 }
 
-export default function TableMap({ players, hand, myId, handNumber }) {
+export default function TableMap({ players, hand, myId, handNumber, smallBlind }) {
   const playerList = Object.values(players || {}).sort((a, b) => a.seat - b.seat)
   const mySeat = playerList.find((p) => p.id === myId)?.seat ?? 0
   const n = playerList.length
@@ -73,7 +73,7 @@ export default function TableMap({ players, hand, myId, handNumber }) {
           <div className="flex flex-col items-center justify-center px-3 py-1.5 flex-1">
             <span className="text-white text-[9px] font-bold uppercase tracking-wider leading-none mb-0.5">bote</span>
             <span className="text-gold-400 font-casino font-bold leading-none" style={{ fontSize: '1rem' }}>
-              {formatChips(pot)}
+              {formatChips(pot, smallBlind)}
             </span>
           </div>
 
@@ -84,7 +84,7 @@ export default function TableMap({ players, hand, myId, handNumber }) {
           <div className="flex flex-col items-center justify-center px-3 py-1.5 flex-1">
             <span className="text-white text-[9px] font-bold uppercase tracking-wider leading-none mb-0.5">apuesta</span>
             <span className="text-gray-200 font-bold leading-none" style={{ fontSize: '1rem' }}>
-              {currentBet > 0 ? formatChips(currentBet) : '—'}
+              {currentBet > 0 ? formatChips(currentBet, smallBlind) : '—'}
             </span>
             {aggressorName && currentBet > 0 && (
               <span
@@ -103,6 +103,7 @@ export default function TableMap({ players, hand, myId, handNumber }) {
         lastAction={hand?.lastAction}
         handNumber={hand?.handNumber}
         players={players}
+        smallBlind={smallBlind}
       />
 
       {/* Players — "me" always at visual index 0 (bottom center) */}
@@ -140,16 +141,21 @@ export default function TableMap({ players, hand, myId, handNumber }) {
             </div>
 
             {/* Name + chips */}
-            <div className="text-center mt-0.5">
+            <div className="text-center mt-0.5 flex flex-col items-center">
               <p
                 className={`leading-tight font-semibold ${isMe ? 'text-[10px]' : 'text-[9px]'}`}
                 style={{ color }}
               >
                 {player.name}
               </p>
-              <p className={`font-bold text-gold-400 ${isMe ? 'text-[12px]' : 'text-[9px]'}`}>
-                {formatChips(player.chips)}
-              </p>
+              {/* Chips in a horizontal box overlay — free to be wider than the avatar,
+                  with a solid backdrop so a larger font reads clearly on the felt */}
+              <div
+                className={`mt-0.5 rounded-md bg-black/80 border border-gold-600/60 font-bold text-gold-300 leading-none whitespace-nowrap shadow-sm
+                  ${isMe ? 'px-2.5 py-1 text-[16px]' : 'px-2 py-0.5 text-[13px]'}`}
+              >
+                {formatChips(player.chips, smallBlind)}
+              </div>
             </div>
 
             {isDealer && (
@@ -163,7 +169,7 @@ export default function TableMap({ players, hand, myId, handNumber }) {
                 className="absolute -bottom-4 text-white text-[8px] rounded-full px-1.5 py-0.5 font-bold whitespace-nowrap"
                 style={{ backgroundColor: color }}
               >
-                {formatChips(player.currentBet)}
+                {formatChips(player.currentBet, smallBlind)}
               </div>
             )}
           </div>

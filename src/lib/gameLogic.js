@@ -97,9 +97,15 @@ export function currentBlinds(room) {
   return levels[Math.min(level, levels.length - 1)]
 }
 
-// Formats chip amounts (1500 → "1,500" or "1.5K")
-export function formatChips(n) {
+// Formats chip amounts (1500 → "1.500" or "1.5K").
+// The "K" abbreviation has a step of 100 chips (1 decimal), so a change smaller than
+// that is invisible. When `smallBlind` is passed and it's finer than that step (< 100),
+// we show the exact amount instead, so gaining/losing ~one blind is always visible.
+export function formatChips(n, smallBlind) {
   if (n === undefined || n === null) return '0'
+  if (typeof smallBlind === 'number' && smallBlind < 100) {
+    return n.toLocaleString('es', { useGrouping: 'always' })
+  }
   if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`
   return n.toLocaleString('es')
 }

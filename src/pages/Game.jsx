@@ -189,7 +189,7 @@ export default function Game() {
 
       {/* ── Table map ── */}
       <div className="flex-1 min-h-0 px-2 pt-1 relative">
-        <TableMap players={players} hand={hand} myId={playerId} />
+        <TableMap players={players} hand={hand} myId={playerId} smallBlind={blinds.small} />
       </div>
 
       {/* ── My chips ── */}
@@ -197,13 +197,13 @@ export default function Game() {
         <div className="flex-shrink-0 card-felt mx-3 mb-2 px-4 py-2.5 flex justify-between items-center">
           <div>
             <p className="label-sm">Mis fichas</p>
-            <p className="chip-display">{formatChips(me.chips)}</p>
+            <p className="chip-display">{formatChips(me.chips, blinds.small)}</p>
           </div>
           <div className="text-right flex flex-col items-end gap-1">
             {myPrevBet > 0 && (
               <div>
                 <p className="label-sm">Mi apuesta</p>
-                <p className="text-gold-400 font-bold">{formatChips(myPrevBet)}</p>
+                <p className="text-gold-400 font-bold">{formatChips(myPrevBet, blinds.small)}</p>
               </div>
             )}
             {me.status === 'folded' && <span className="text-red-400 font-bold text-sm">FOLD</span>}
@@ -229,7 +229,7 @@ export default function Game() {
                       {isAllIn ? 'ALL IN' : (canCheck ? 'Apostar' : 'Subir a')}
                     </span>
                     <span className={`text-xl font-bold font-casino ${isAllIn ? 'text-purple-300' : 'text-gold-300'}`}>
-                      {formatChips(clampedSlider)}
+                      {formatChips(clampedSlider, blinds.small)}
                     </span>
                   </div>
 
@@ -249,9 +249,9 @@ export default function Game() {
 
                   {/* Range labels */}
                   <div className="flex justify-between text-[10px] text-gray-500">
-                    <span>mín {formatChips(raiseMin)}</span>
+                    <span>mín {formatChips(raiseMin, blinds.small)}</span>
                     <span className={isAllIn ? 'text-purple-400 font-semibold' : ''}>
-                      all-in {formatChips(maxBet)}
+                      all-in {formatChips(maxBet, blinds.small)}
                     </span>
                   </div>
 
@@ -306,7 +306,7 @@ export default function Game() {
                   >
                     <span>Call</span>
                     <span className="text-xs font-normal opacity-75">
-                      {formatChips(Math.min(toCall, me.chips))}
+                      {formatChips(Math.min(toCall, me.chips), blinds.small)}
                     </span>
                   </button>
                 )}
@@ -405,7 +405,7 @@ export default function Game() {
               {isSplitMode && selectedWinners.length >= 2 && (
                 <p className="text-center text-xs text-gray-400 mb-2">
                   Split entre: {selectedWinners.map((id) => players[id]?.name).join(', ')}
-                  {' → '}{formatChips(splitShare)} fichas c/u
+                  {' → '}{formatChips(splitShare, blinds.small)} fichas c/u
                   {splitRemainder > 0 && ` (sobran ${splitRemainder} ficha${splitRemainder > 1 ? 's' : ''})`}
                 </p>
               )}

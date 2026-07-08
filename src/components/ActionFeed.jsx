@@ -12,18 +12,18 @@ function playerColor(players, playerName) {
 }
 
 const ACTION_LABEL = {
-  fold:  (a) => 'se retira',
-  call:  (a) => `iguala ${formatChips(a.amount)}`,
-  check: (a) => 'pasa',
-  raise: (a) => `sube a ${formatChips(a.amount)}`,
-  bet:   (a) => `apuesta ${formatChips(a.amount)}`,
-  allin: (a) => 'va ALL-IN',
-  win:   (a) => `gana ${formatChips(a.amount)}`,
+  fold:  (a, sb) => 'se retira',
+  call:  (a, sb) => `iguala ${formatChips(a.amount, sb)}`,
+  check: (a, sb) => 'pasa',
+  raise: (a, sb) => `sube a ${formatChips(a.amount, sb)}`,
+  bet:   (a, sb) => `apuesta ${formatChips(a.amount, sb)}`,
+  allin: (a, sb) => 'va ALL-IN',
+  win:   (a, sb) => `gana ${formatChips(a.amount, sb)}`,
 }
 
 const OPACITIES = [0.08, 0.25, 0.55, 1.0]
 
-export default function ActionFeed({ lastAction, handNumber, players }) {
+export default function ActionFeed({ lastAction, handNumber, players, smallBlind }) {
   const [entries, setEntries] = useState([])
   const prevTs = useRef(null)
 
@@ -57,7 +57,7 @@ export default function ActionFeed({ lastAction, handNumber, players }) {
         const isNewest = idx === entries.length - 1
         const opacityIdx = entries.length - 1 - idx
         const opacity = OPACITIES[Math.min(opacityIdx, OPACITIES.length - 1)]
-        const label = (ACTION_LABEL[entry.action] || (() => entry.action))(entry)
+        const label = (ACTION_LABEL[entry.action] || (() => entry.action))(entry, smallBlind)
         const color = playerColor(players, entry.playerName)
 
         return (
