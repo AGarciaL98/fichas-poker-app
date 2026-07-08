@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const ACCESS_CODE = 'Villafranca2026'
+const ACCESS_CODE = '0000'
 const STORAGE_KEY = 'beta_unlocked'
 
 const EMPTY_TAPS_TO_UNLOCK = 3
