@@ -391,7 +391,9 @@ io.on('connection', (socket) => {
 
     if (splitPot && winnerIds.length > 1) {
       const share = Math.floor(pot / winnerIds.length)
+      const remainder = pot - share * winnerIds.length
       winnerIds.forEach((id) => { if (room.players[id]) room.players[id].chips += share })
+      if (remainder > 0) room.carryoverPot = (room.carryoverPot || 0) + remainder
     } else {
       const winner = room.players[winnerIds[0]]
       if (winner) winner.chips += pot
@@ -419,6 +421,8 @@ io.on('connection', (socket) => {
     const newDealerSeat = nextActiveSeat(players, room.hand?.dealerSeat ?? 0)
     const blinds = currentBlinds(room)
     const seats = blindSeats(players, newDealerSeat)
+    const carryover = room.carryoverPot || 0
+    room.carryoverPot = 0
 
     Object.values(players).forEach((p) => {
       if (p.chips <= 0 && p.status !== 'out') p.status = 'out'
@@ -441,7 +445,7 @@ io.on('connection', (socket) => {
       if (sb && sb.chips > 0) { sb.chips -= blinds.small; sb.currentBet = blinds.small }
       if (bb && bb.chips > 0) { bb.chips -= blinds.big;   bb.currentBet = blinds.big   }
       room.hand = {
-        pot: blinds.small + blinds.big,
+        pot: blinds.small + blinds.big + carryover,
         dealerSeat: newDealerSeat,
         currentTurn: seats.firstToActSeat,
         phase: 'preflop',

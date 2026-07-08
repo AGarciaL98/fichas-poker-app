@@ -45,6 +45,7 @@ export default function Game() {
   const [sliderValue, setSliderValue] = useState(null)
   const [showWinnerPicker, setShowWinnerPicker] = useState(false)
   const [selectedWinners, setSelectedWinners] = useState([])
+  const [isSplitMode, setIsSplitMode] = useState(false)
   const [showDealerMenu, setShowDealerMenu] = useState(false)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
 
@@ -91,6 +92,11 @@ export default function Game() {
   const canCheck = toCall === 0
   const currentTurnPlayer = Object.values(players).find((p) => p.seat === hand.currentTurn)
 
+  // Split pot: cuántas fichas le toca a cada ganador y cuántas sobran por el redondeo
+  const canConfirmAward = isSplitMode ? selectedWinners.length >= 2 : selectedWinners.length === 1
+  const splitShare = selectedWinners.length > 0 ? Math.floor((hand.pot || 0) / selectedWinners.length) : 0
+  const splitRemainder = selectedWinners.length > 0 ? (hand.pot || 0) % selectedWinners.length : 0
+
   // Slider state
   const canRaise = me?.chips > 0 && maxBet > myPrevBet
   const step = Math.max(1, hand.bigBlind || blinds.big || 1)
@@ -114,16 +120,30 @@ export default function Game() {
   }
 
   function toggleWinner(id) {
+    if (!isSplitMode) {
+      setSelectedWinners([id])
+      return
+    }
     setSelectedWinners((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     )
   }
 
+  function toggleSplitMode() {
+    setIsSplitMode((prev) => {
+      const next = !prev
+      // Con solo 2 jugadores en la mano, activar Split ya implica repartir entre ambos
+      setSelectedWinners(next && inHand.length === 2 ? inHand.map((p) => p.id) : [])
+      return next
+    })
+  }
+
   function confirmAwardPot() {
-    if (selectedWinners.length === 0) return
-    awardPot(roomCode, selectedWinners)
+    if (!canConfirmAward) return
+    awardPot(roomCode, selectedWinners, hand.pot)
     setShowWinnerPicker(false)
     setSelectedWinners([])
+    setIsSplitMode(false)
   }
 
   return (
@@ -349,8 +369,22 @@ export default function Game() {
             /* Picker de ganador */
             <div>
               <p className="label-sm text-center mb-2">
-                {inHand.length > 2 ? 'Toca uno o varios ganadores' : '¿Quién gana el bote?'}
+                {isSplitMode ? 'Selecciona entre quién se divide el bote:' : '¿Quién gana el bote?'}
               </p>
+
+              <div className="flex justify-center mb-2">
+                <button
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                    isSplitMode
+                      ? 'bg-gold-500 text-black border-gold-500'
+                      : 'bg-felt-700 text-gray-300 border-felt-600'
+                  }`}
+                  onClick={toggleSplitMode}
+                >
+                  {isSplitMode ? 'Split activado ✓' : '🤝 Split'}
+                </button>
+              </div>
+
               <div className="flex flex-wrap gap-2 justify-center mb-2">
                 {inHand.map((p) => (
                   <button
@@ -363,21 +397,30 @@ export default function Game() {
                     onClick={() => toggleWinner(p.id)}
                   >
                     {p.name}
-                    {selectedWinners.includes(p.id) && inHand.length > 2 && ' ✓'}
+                    {selectedWinners.includes(p.id) && isSplitMode && ' ✓'}
                   </button>
                 ))}
               </div>
+
+              {isSplitMode && selectedWinners.length >= 2 && (
+                <p className="text-center text-xs text-gray-400 mb-2">
+                  Split entre: {selectedWinners.map((id) => players[id]?.name).join(', ')}
+                  {' → '}{formatChips(splitShare)} fichas c/u
+                  {splitRemainder > 0 && ` (sobran ${splitRemainder} ficha${splitRemainder > 1 ? 's' : ''})`}
+                </p>
+              )}
+
               <div className="flex gap-2">
                 <button
                   className="flex-1 btn-gold py-2 text-sm disabled:opacity-40"
                   onClick={confirmAwardPot}
-                  disabled={selectedWinners.length === 0}
+                  disabled={!canConfirmAward}
                 >
-                  {selectedWinners.length > 1 ? 'Dividir bote' : 'Dar bote 🏆'}
+                  {isSplitMode ? 'Dividir bote' : 'Dar bote 🏆'}
                 </button>
                 <button
                   className="btn-ghost py-2 px-4 text-sm"
-                  onClick={() => { setShowWinnerPicker(false); setSelectedWinners([]) }}
+                  onClick={() => { setShowWinnerPicker(false); setSelectedWinners([]); setIsSplitMode(false) }}
                 >
                   Cancelar
                 </button>
@@ -388,7 +431,7 @@ export default function Game() {
             /* Botón principal: dar bote */
             <button
               className="w-full py-3 rounded-xl bg-green-900 border border-green-700 text-white text-base font-bold active:scale-95"
-              onClick={() => { setShowWinnerPicker(true); setSelectedWinners([]) }}
+              onClick={() => { setShowWinnerPicker(true); setSelectedWinners([]); setIsSplitMode(false) }}
             >
               ¿Quién gana el bote? 🏆
             </button>

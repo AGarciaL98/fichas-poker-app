@@ -64,8 +64,11 @@ export const nextPhase = (roomCode) =>
 export const newHand = (roomCode) =>
   socket.emit('new-hand', { roomCode })
 
-export const awardPot = (roomCode, winnerIds) =>
-  socket.emit('award-pot', { roomCode, winnerIds, splitPot: winnerIds.length > 1 })
+export const awardPot = (roomCode, winnerIds, pot = 0) => {
+  const splitPot = winnerIds.length > 1
+  const remainder = splitPot ? pot % winnerIds.length : 0
+  socket.emit('award-pot', { roomCode, winnerIds, splitPot, remainder })
+}
 
 export const increaseBlinds = (roomCode) =>
   socket.emit('increase-blinds', { roomCode })
