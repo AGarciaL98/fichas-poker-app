@@ -17,8 +17,10 @@ export default function Lobby() {
   const [copied, setCopied] = useState(false)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
 
+  const tableName = room?.name || roomCode
+
   function copyCode() {
-    copyToClipboard(roomCode).then(() => {
+    copyToClipboard(tableName).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
@@ -26,7 +28,7 @@ export default function Lobby() {
 
   const isHost = room?.host === playerId
   const players = Object.values(room?.players || {}).sort((a, b) => a.seat - b.seat)
-  const joinUrl = `${window.location.origin}/?join=${roomCode}`
+  const joinUrl = `${window.location.origin}/?join=${encodeURIComponent(tableName)}`
 
   useEffect(() => {
     if (room?.status === 'playing') {
@@ -61,15 +63,15 @@ export default function Lobby() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 text-center px-4 pt-5 pb-3 bg-felt-900">
-        <p className="label-sm">Código de sala</p>
+        <p className="label-sm">Nombre de la mesa</p>
         <div className="flex items-center justify-center gap-3 mt-1">
-          <h1 className="text-5xl font-casino font-bold text-gold-400 tracking-[0.35em]">
-            {roomCode}
+          <h1 className="text-3xl font-casino font-bold text-gold-400 break-words leading-tight">
+            {tableName}
           </h1>
           <button
             onClick={copyCode}
-            className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
-            title="Copiar código"
+            className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform shrink-0"
+            title="Copiar nombre"
           >
             <span className="text-2xl">{copied ? '✅' : '📋'}</span>
             <span className={`text-[10px] font-semibold ${copied ? 'text-green-400' : 'text-gray-500'}`}>

@@ -159,7 +159,7 @@ export default function Game() {
             ✕ Salir
           </button>
           <div className="flex items-center gap-2">
-            <span className="text-gold-400 font-casino font-bold text-sm tracking-wider">{roomCode}</span>
+            <span className="text-gold-400 font-casino font-bold text-sm tracking-wider truncate max-w-[160px]">{room?.name || roomCode}</span>
             {hand.handNumber > 0 && (
               <span className="text-[10px] text-gray-500 bg-felt-700 rounded px-1.5 py-0.5">
                 mano #{hand.handNumber}

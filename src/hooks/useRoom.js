@@ -34,9 +34,9 @@ export function useRoom(roomCode, playerId) {
 
 // ─── Actions (all synchronous — server broadcasts updates) ───────────────────
 
-export function createRoom(roomCode, config, player) {
+export function createRoom(roomCode, name, config, player) {
   return new Promise((resolve, reject) => {
-    socket.emit('create-room', { roomCode, config, player }, (res) => {
+    socket.emit('create-room', { roomCode, name, config, player }, (res) => {
       if (res?.error) reject(new Error(res.error))
       else resolve()
     })
