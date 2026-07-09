@@ -6,6 +6,7 @@ import { getOrCreatePlayerId, formatChips, currentBlinds } from '../lib/gameLogi
 import { copyToClipboard } from '../lib/clipboard'
 import ConfirmModal from '../components/ConfirmModal'
 import RoomClosedModal from '../components/RoomClosedModal'
+import WinnerModal from '../components/WinnerModal'
 
 export default function Lobby() {
   const { roomCode } = useParams()
@@ -38,6 +39,10 @@ export default function Lobby() {
 
   if (roomClosed) {
     return <RoomClosedModal onConfirm={() => navigate('/', { replace: true })} />
+  }
+
+  if (room?.status === 'finished') {
+    return <WinnerModal winner={room.winner} onConfirm={() => navigate('/', { replace: true })} />
   }
 
   if (loading) {

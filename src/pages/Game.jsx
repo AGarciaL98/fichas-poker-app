@@ -18,6 +18,7 @@ import TableMap from '../components/TableMap'
 import BlindTimer from '../components/BlindTimer'
 import ConfirmModal from '../components/ConfirmModal'
 import RoomClosedModal from '../components/RoomClosedModal'
+import WinnerModal from '../components/WinnerModal'
 
 const PHASE_LABEL = {
   preflop: 'Pre-flop',
@@ -76,6 +77,10 @@ export default function Game() {
 
   if (roomClosed) {
     return <RoomClosedModal onConfirm={() => navigate('/', { replace: true })} />
+  }
+
+  if (room?.status === 'finished') {
+    return <WinnerModal winner={room.winner} onConfirm={() => navigate('/', { replace: true })} />
   }
 
   if (loading || !room) {
