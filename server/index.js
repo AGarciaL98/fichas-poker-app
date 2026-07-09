@@ -42,9 +42,18 @@ async function loadRooms() {
 
 function persist(roomCode) {
   if (!db || !rooms[roomCode]) return
+  if (rooms[roomCode].status === 'finished') return  // terminada: ya borrada de la DB, no re-persistir
   rooms[roomCode].lastActivity = Date.now()
   set(dbRef(`rooms/${roomCode}`), rooms[roomCode]).catch((e) =>
     console.error('[firebase] Error al persistir sala:', e.message)
+  )
+}
+
+// Borra solo de Firebase (mantiene la sala en memoria) — para partidas terminadas.
+function removeFromDb(roomCode) {
+  if (!db) return
+  remove(dbRef(`rooms/${roomCode}`)).catch((e) =>
+    console.error('[firebase] Error al borrar sala de la DB:', e.message)
   )
 }
 
@@ -99,7 +108,7 @@ function handlePlayerLeave(roomCode, playerId) {
       if (!room.hand.acted) room.hand.acted = []
       if (!room.hand.acted.includes(playerId)) room.hand.acted.push(playerId)
       checkStreetEnd(room)
-      broadcast(roomCode)
+      if (!checkGameOver(room)) broadcast(roomCode)
     }
     return
   }
@@ -187,6 +196,33 @@ function checkStreetEnd(room) {
     notFolded.forEach((p) => { p.currentBet = 0 })
     hand.currentTurn = nextInHandSeat(players, hand.dealerSeat)
   }
+}
+
+// ─── Fin de partida ───────────────────────────────────────────────────────────
+//
+// La partida termina cuando, tras adjudicar un bote, solo queda un jugador con
+// fichas (los demás a 0). Se marca la sala como 'finished', se guarda el ganador,
+// se avisa a los clientes (que muestran la pantalla de ganador) y se borra de
+// Firebase al instante. La sala permanece en memoria hasta que todos salgan o la
+// purgue el intervalo de inactividad; `persist` ya la ignora por estar 'finished'.
+
+function playersWithChips(room) {
+  return Object.values(room.players || {}).filter((p) => p.chips > 0 && p.status !== 'out')
+}
+
+function checkGameOver(room) {
+  if (!room || room.status !== 'playing') return false
+  // Solo al terminar una mano, con el bote ya adjudicado. Si no, un jugador all-in
+  // (chips 0 temporalmente, mano viva) haría creer que ya solo queda uno.
+  if (!room.hand?.awaitingNewHand) return false
+  const survivors = playersWithChips(room)
+  if (survivors.length > 1) return false
+  const winner = survivors[0]
+  room.status = 'finished'
+  room.winner = winner ? { id: winner.id, name: winner.name, chips: winner.chips } : null
+  io.to(room.code).emit('room-update', room)
+  removeFromDb(room.code)
+  return true
 }
 
 // ─── Socket events ────────────────────────────────────────────────────────────
@@ -382,7 +418,7 @@ io.on('connection', (socket) => {
     // ── Auto-advance phase ──────────────────────────────────────────────────
     checkStreetEnd(room)
 
-    broadcast(roomCode)
+    if (!checkGameOver(room)) broadcast(roomCode)
   })
 
   socket.on('award-pot', ({ roomCode, winnerIds, splitPot }) => {
@@ -409,7 +445,7 @@ io.on('connection', (socket) => {
       amount: pot,
       ts: Date.now(),
     }
-    broadcast(roomCode)
+    if (!checkGameOver(room)) broadcast(roomCode)
   })
 
   socket.on('new-hand', ({ roomCode }) => {
