@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { generateRoomCode, getOrCreatePlayerId, DEFAULT_BLIND_LEVELS } from '../lib/gameLogic'
+import { slugifyRoomName, getOrCreatePlayerId, DEFAULT_BLIND_LEVELS } from '../lib/gameLogic'
 import { createRoom, joinRoom } from '../hooks/useRoom'
 import { pasteFromClipboard } from '../lib/clipboard'
 
@@ -33,6 +33,7 @@ export default function Home() {
   const [searchParams] = useSearchParams()
   const [view, setView] = useState('home')
   const [name, setName] = useState('')
+  const [tableName, setTableName] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -46,7 +47,7 @@ export default function Home() {
   useEffect(() => {
     const code = searchParams.get('join')
     if (code) {
-      setJoinCode(code.toUpperCase())
+      setJoinCode(code)
       setView('join')
     }
   }, [])
@@ -86,14 +87,17 @@ export default function Home() {
   // ── Actions ──────────────────────────────────────────────────────────────
 
   async function handleCreate() {
+    const table = tableName.trim()
+    if (!table) return setError('Ponle un nombre a la mesa')
     if (!name.trim()) return setError('Escribe tu nombre')
+    const code = slugifyRoomName(table)
+    if (code.length < 3) return setError('El nombre de la mesa debe tener al menos 3 letras o números')
     if (config.blindLevels.length === 0) return setError('Añade al menos un nivel de ciegas')
     setLoading(true)
     setError('')
     try {
-      const code = generateRoomCode()
       const playerId = getOrCreatePlayerId()
-      await createRoom(code, config, { id: playerId, name: name.trim() })
+      await createRoom(code, table, config, { id: playerId, name: name.trim() })
       navigate(`/lobby/${code}`)
     } catch (e) {
       setError(e.message)
@@ -102,9 +106,9 @@ export default function Home() {
   }
 
   async function handleJoin() {
-    const code = joinCode.trim().toUpperCase()
     if (!name.trim()) return setError('Escribe tu nombre')
-    if (code.length < 5) return setError('Código inválido (5 caracteres)')
+    const code = slugifyRoomName(joinCode)
+    if (code.length < 3) return setError('Escribe el nombre de la mesa')
     setLoading(true)
     setError('')
     try {
@@ -173,24 +177,24 @@ export default function Home() {
             />
           </div>
           <div>
-            <label className="label-sm mb-1 block">Código de sala</label>
+            <label className="label-sm mb-1 block">Nombre de la mesa</label>
             <div className="flex gap-2">
               <input
-                className="input-field text-2xl text-center tracking-[0.3em] uppercase flex-1"
-                placeholder="XXXXX"
+                className="input-field text-lg text-center flex-1"
+                placeholder="Ej: Póker casa Carlos"
                 value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                maxLength={5}
+                onChange={(e) => setJoinCode(e.target.value)}
+                maxLength={30}
               />
               <button
                 type="button"
                 className="bg-felt-800 border border-felt-600 rounded-xl px-3 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-transform"
                 onClick={() =>
                   pasteFromClipboard()
-                    .then((text) => setJoinCode(text.trim().toUpperCase().slice(0, 5)))
+                    .then((text) => setJoinCode(text.trim().slice(0, 30)))
                     .catch(() => {})
                 }
-                title="Pegar código"
+                title="Pegar nombre"
               >
                 <span className="text-xl">📋</span>
                 <span className="text-[10px] text-gray-500">Pegar</span>
@@ -219,6 +223,20 @@ export default function Home() {
 
       {/* Scrollable config */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+
+        {/* Nombre de la mesa */}
+        <Section title="Nombre de la mesa">
+          <input
+            className="input-field"
+            placeholder="Ej: Póker casa Carlos"
+            value={tableName}
+            onChange={(e) => setTableName(e.target.value)}
+            maxLength={30}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Con este nombre se unirán los demás. Debe ser único entre las mesas activas.
+          </p>
+        </Section>
 
         {/* Nombre */}
         <Section title="Tu nombre (eres el dealer)">
@@ -341,7 +359,7 @@ export default function Home() {
           onClick={handleCreate}
           disabled={loading}
         >
-          {loading ? 'Creando...' : 'Crear mesa y compartir código →'}
+          {loading ? 'Creando...' : 'Crear mesa →'}
         </button>
       </div>
     </div>

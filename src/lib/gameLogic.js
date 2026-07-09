@@ -6,6 +6,18 @@ export function generateRoomCode() {
   return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
+// Turns a human table name into a URL- and Firebase-key-safe id used as the room code.
+// "Póker casa Carlos" → "poker-casa-carlos". Case/accents/spacing are normalized so that
+// two visually-equal names collide (used to enforce a single active table per name).
+// Returns '' when nothing usable remains (caller should reject it).
+export function slugifyRoomName(name) {
+  return (name || '')
+    .normalize('NFD').replace(/\p{Diacritic}/gu, '')  // strip accents (á → a)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')                       // any run of non-alphanumerics → hyphen
+    .replace(/^-+|-+$/g, '')                           // trim leading/trailing hyphens
+}
+
 // Stable player identity persisted in sessionStorage (via storage.js): survives a tab
 // reload so the player can re-join the same hand after an F5, but stays scoped to the
 // tab (each tab = its own player). Falls back to an in-memory id if storage is unavailable.

@@ -56,18 +56,18 @@ function deleteRoom(roomCode) {
   )
 }
 
-// Elimina salas sin actividad en más de 12 horas
-const TWELVE_HOURS = 12 * 60 * 60 * 1000
+// Elimina salas sin ninguna transacción (última actividad) en más de 3 horas
+const THREE_HOURS = 3 * 60 * 60 * 1000
 setInterval(() => {
   const now = Date.now()
   for (const [code, room] of Object.entries(rooms)) {
     const lastActive = room.lastActivity || room.createdAt || 0
-    if (now - lastActive > TWELVE_HOURS) {
-      console.log(`[firebase] Sala ${code} expirada — eliminando`)
+    if (now - lastActive > THREE_HOURS) {
+      console.log(`[firebase] Sala ${code} expirada por inactividad — eliminando`)
       deleteRoom(code)
     }
   }
-}, 60 * 60 * 1000)
+}, 30 * 60 * 1000)
 
 // ─── Socket.io ────────────────────────────────────────────────────────────────
 
@@ -193,10 +193,11 @@ function checkStreetEnd(room) {
 
 io.on('connection', (socket) => {
 
-  socket.on('create-room', ({ roomCode, config, player }, cb) => {
-    if (rooms[roomCode]) return cb?.({ error: 'Código de sala ya existe' })
+  socket.on('create-room', ({ roomCode, name, config, player }, cb) => {
+    if (rooms[roomCode]) return cb?.({ error: 'Ya existe una mesa activa con ese nombre' })
     rooms[roomCode] = {
       code: roomCode,
+      name: name || roomCode,
       status: 'waiting',
       createdAt: Date.now(),
       lastActivity: Date.now(),
