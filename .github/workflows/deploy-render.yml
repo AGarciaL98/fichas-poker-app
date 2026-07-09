@@ -1,0 +1,24 @@
+name: Deploy server to Render
+
+# Cada push a main dispara un deploy del servidor en Render llamando a su Deploy Hook.
+# Sustituye al webhook nativo de Render (que no estaba instalado). El frontend se
+# sigue publicando aparte con `npm run deploy` (Firebase Hosting).
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  trigger-render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy hook
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "::error::Falta el secreto RENDER_DEPLOY_HOOK"
+            exit 1
+          fi
+          curl -fsSL -X POST "$RENDER_DEPLOY_HOOK"
+          echo "Deploy de Render disparado."
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
